@@ -9,7 +9,7 @@ class IndoorNavigatorApp {
         // Building orientation offset
         // The floor plan's "north" (up on screen) corresponds to 77° on the compass
         // Subtract this offset from compass readings to align with the floor plan
-        this.buildingRotationOffset = 123;
+        this.buildingRotationOffset = 223;
 
         // App state
         this.isTracking = false;
