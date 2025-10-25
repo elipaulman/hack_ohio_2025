@@ -334,8 +334,8 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
               height: 0,
               borderLeft: '14px solid transparent',
               borderRight: '14px solid transparent',
-              borderTop: '28px solid #2196F3',
-              filter: 'drop-shadow(0 0 -12px rgba(33, 150, 243, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+              borderBottom: '28px solid #2196F3',
+              filter: 'drop-shadow(0 4px 12px rgba(33, 150, 243, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
               top: '50%',
               left: '50%'
             }}
