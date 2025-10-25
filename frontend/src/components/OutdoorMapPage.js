@@ -1,12 +1,18 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { GoogleMap, Marker, DirectionsService, DirectionsRenderer, useJsApiLoader } from "@react-google-maps/api";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  GoogleMap,
+  Marker,
+  DirectionsService,
+  DirectionsRenderer,
+  useJsApiLoader,
+} from "@react-google-maps/api";
 
 const containerStyle = {
   width: "100%",
   height: "100vh",
 };
 
-const center = { lat: 40.0027, lng: -83.0151 }; // Scott Lab central position
+const center = { lat: 40.0027, lng: -83.0151 }; // Scott Lab center
 
 // Define building entrances
 const entrances = [
@@ -16,6 +22,7 @@ const entrances = [
   { name: "West Entrance", lat: 40.002350, lng: -83.015950 },
 ];
 
+// Helper to find nearest entrance
 function findClosestEntrance(lat, lng) {
   let minDist = Infinity;
   let closest = null;
@@ -40,39 +47,70 @@ export default function ScottLabMap() {
   const [directions, setDirections] = useState(null);
   const [directionsRequest, setDirectionsRequest] = useState(null);
 
-  const handleMapClick = useCallback((event) => {
-    const lat = event.latLng.lat();
-    const lng = event.latLng.lng();
-    const clickedPoint = { lat, lng };
-    const closest = findClosestEntrance(lat, lng);
-    if (!closest) return;
-
-    setUserLocation(clickedPoint);
-    setClosestEntrance(closest);
-    setDirections(null);
-
-    // Delay to ensure API is loaded before creating Directions request
-    setTimeout(() => {
-      const request = {
-        origin: clickedPoint,
-        destination: { lat: closest.lat, lng: closest.lng },
-        travelMode: window.google.maps.TravelMode.WALKING,
-      };
-      setDirectionsRequest(request);
-    }, 200);
-  }, []);
-
   const mapOptions = useMemo(
     () => ({
       disableDefaultUI: true,
       zoomControl: true,
       gestureHandling: "greedy",
-      mapId: "DEMO_MAP_ID", // Optional: use your custom Map ID if you have one
+      mapId: "DEMO_MAP_ID", // optional custom Map ID
     }),
     []
   );
 
-  if (loadError) return <div>Error loading maps</div>;
+  // Track current user location and dynamically route to nearest entrance
+  useEffect(() => {
+    if (navigator.geolocation) {
+      let lastPosition = null;
+      let lastEntrance = null;
+
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const current = { lat: latitude, lng: longitude };
+
+          setUserLocation(current);
+
+          const closest = findClosestEntrance(latitude, longitude);
+
+          // Calculate movement distance
+          const movedFarEnough =
+            !lastPosition ||
+            Math.sqrt(
+              (latitude - lastPosition.lat) ** 2 +
+                (longitude - lastPosition.lng) ** 2
+            ) > 0.0001; // ~10 meters
+
+          // Recalculate route only if moved significantly or closest entrance changed
+          if (
+            movedFarEnough ||
+            !lastEntrance ||
+            closest.name !== lastEntrance.name
+          ) {
+            setClosestEntrance(closest);
+            lastPosition = current;
+            lastEntrance = closest;
+
+            if (window.google) {
+              const request = {
+                origin: current,
+                destination: { lat: closest.lat, lng: closest.lng },
+                travelMode: "WALKING",
+              };
+              setDirectionsRequest(request);
+            }
+          }
+        },
+        (error) => console.error("Geolocation error:", error),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      );
+
+      return () => navigator.geolocation.clearWatch(watchId);
+    } else {
+      console.warn("Geolocation not supported in this browser.");
+    }
+  }, []);
+
+  if (loadError) return <div>Error loading Google Maps</div>;
   if (!isLoaded) return <div>Loading Map...</div>;
 
   return (
@@ -82,7 +120,6 @@ export default function ScottLabMap() {
         center={center}
         zoom={18}
         options={mapOptions}
-        onClick={handleMapClick}
       >
         {/* Entrance markers */}
         {entrances.map((e, i) => (
@@ -95,14 +132,31 @@ export default function ScottLabMap() {
               color: "#000",
               fontWeight: "bold",
             }}
+            icon={{
+              url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+              scaledSize: new window.google.maps.Size(40, 40),
+            }}
           />
         ))}
 
-        {/* User location marker */}
+        {/* Custom user location marker */}
         {userLocation && (
           <Marker
             position={userLocation}
-            icon="http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+            label={{
+              text: "You",
+              color: "#fff",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: "#1a73e8",
+              fillOpacity: 1,
+              strokeWeight: 2,
+              strokeColor: "#ffffff",
+            }}
           />
         )}
 
@@ -111,7 +165,6 @@ export default function ScottLabMap() {
           <DirectionsService
             options={directionsRequest}
             callback={(result, status) => {
-              console.log("Directions Status:", status);
               if (status === "OK" && result) {
                 setDirections(result);
               } else {
@@ -121,32 +174,34 @@ export default function ScottLabMap() {
           />
         )}
 
-        {/* Directions Renderer */}
+        {/* Render the path, suppress A/B markers */}
         {directions && (
           <DirectionsRenderer
             options={{
               directions,
-              suppressMarkers: false,
+              suppressMarkers: true,
               preserveViewport: true,
               polylineOptions: {
-                strokeColor: "#4285F4",
-                strokeOpacity: 0.8,
-                strokeWeight: 5,
+                strokeColor: "#1a73e8",
+                strokeOpacity: 0.9,
+                strokeWeight: 6,
               },
             }}
           />
         )}
       </GoogleMap>
 
-      {/* Overlay Info Bar */}
-      <div className="absolute top-2 left-2 bg-white p-3 rounded-xl shadow-lg">
-        <h2 className="text-lg font-semibold text-gray-800">Scott Lab Navigator</h2>
+      {/* Overlay UI */}
+      <div className="absolute top-3 left-3 bg-white p-3 rounded-xl shadow-lg">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Scott Lab Navigator
+        </h2>
         <p className="text-sm text-gray-600">
-          Tap anywhere to route to the nearest entrance.
+          Automatically routing to the nearest entrance.
         </p>
         {closestEntrance && (
           <p className="text-sm mt-1 font-medium text-gray-700">
-            → Routing to {closestEntrance.name}
+            → Closest: {closestEntrance.name}
           </p>
         )}
       </div>
