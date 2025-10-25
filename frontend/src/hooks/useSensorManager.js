@@ -209,7 +209,7 @@ export const useSensorManager = () => {
   }, [compassHeading, gyroHeading, fuseHeadings]);
 
   // Request permission
-  const requestPermission = async () => {
+  const requestPermission = useCallback(async () => {
     if (typeof DeviceMotionEvent !== 'undefined' &&
         typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
@@ -218,28 +218,32 @@ export const useSensorManager = () => {
 
         if (motionPermission === 'granted' && orientationPermission === 'granted') {
           setHasPermission(true);
-          return { success: true };
+          return { success: true, hasPermission: true };
         } else {
           return {
             success: false,
+            hasPermission: false,
             error: 'Permission denied. Please grant access to motion sensors in your browser settings.'
           };
         }
       } catch (error) {
         return {
           success: false,
+          hasPermission: false,
           error: `Permission request failed: ${error.message}`
         };
       }
     } else {
       setHasPermission(true);
-      return { success: true };
+      return { success: true, hasPermission: true };
     }
-  };
+  }, []);
 
   // Start sensors
-  const start = useCallback(() => {
-    if (!hasPermission) {
+  const start = useCallback((permissionGranted = null) => {
+    const canStart = permissionGranted !== null ? permissionGranted : hasPermission;
+
+    if (!canStart) {
       console.error('Cannot start sensors without permission');
       return false;
     }

@@ -9,6 +9,7 @@ const IndoorNavPage = ({ onNavigate }) => {
   const sensorManager = useSensorManager();
   const stepDetector = useStepDetector();
   const positionTracker = usePositionTracker();
+  const stopSensors = sensorManager.stop;
 
   const [isTracking, setIsTracking] = useState(false);
   const [isCalibrationMode, setIsCalibrationMode] = useState(true);
@@ -50,6 +51,12 @@ const IndoorNavPage = ({ onNavigate }) => {
     stepDetector.onStep(handleStep);
   }, [stepDetector, handleStep]);
 
+  useEffect(() => {
+    return () => {
+      stopSensors();
+    };
+  }, [stopSensors]);
+
   // Start tracking
   const startTracking = async () => {
     setShowLoading(true);
@@ -65,7 +72,7 @@ const IndoorNavPage = ({ onNavigate }) => {
 
     setLoadingText('Starting sensors...');
 
-    const started = sensorManager.start();
+    const started = sensorManager.start(permissionResult.hasPermission ?? true);
 
     if (!started) {
       setShowLoading(false);
@@ -140,9 +147,14 @@ const IndoorNavPage = ({ onNavigate }) => {
 
       {/* Status Bar */}
       <div className="status-bar">
-        <div className="status-text">{statusText}</div>
-        <div className="accuracy-indicator confidence-{positionTracker.confidenceLevel}">
-          {positionTracker.confidenceLevel.toUpperCase()}
+        <div className="status-text" aria-live="polite">
+          {statusText}
+        </div>
+        <div className={`accuracy-indicator confidence-${positionTracker.confidenceLevel}`}>
+          <span className="confidence-label">Confidence</span>
+          <span className="confidence-value">
+            {positionTracker.confidenceLevel.toUpperCase()}
+          </span>
         </div>
       </div>
 

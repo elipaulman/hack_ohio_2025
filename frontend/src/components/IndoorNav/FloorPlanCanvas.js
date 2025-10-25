@@ -38,27 +38,25 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
     const ctx = canvas.getContext('2d');
     ctx.scale(state.dpr, state.dpr);
-  }, []);
 
-  // Fit floor plan to canvas
-  const fitFloorPlan = useCallback(() => {
-    const canvas = canvasRef.current;
-    const image = imageRef.current;
-    if (!canvas || !image) return;
+    // Force re-render after resize
+    requestAnimationFrame(() => {
+      if (imageLoaded) {
+        const ctx = canvas.getContext('2d');
+        const image = imageRef.current;
+        const canvasWidth = canvas.width / state.dpr;
+        const canvasHeight = canvas.height / state.dpr;
 
-    const state = stateRef.current;
-    const canvasWidth = canvas.width / state.dpr;
-    const canvasHeight = canvas.height / state.dpr;
-    const imageWidth = image.width;
-    const imageHeight = image.height;
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.save();
+        ctx.translate(state.offsetX, state.offsetY);
+        ctx.scale(state.scale, state.scale);
+        ctx.drawImage(image, 0, 0);
+        ctx.restore();
+      }
+    });
+  }, [imageLoaded]);
 
-    const scaleX = canvasWidth / imageWidth;
-    const scaleY = canvasHeight / imageHeight;
-    state.scale = Math.min(scaleX, scaleY) * 0.95;
-
-    state.offsetX = (canvasWidth - imageWidth * state.scale) / 2;
-    state.offsetY = (canvasHeight - imageHeight * state.scale) / 2;
-  }, []);
 
   // Draw path history
   const drawPathHistory = useCallback((ctx, path) => {
@@ -236,15 +234,38 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
   useEffect(() => {
     const image = imageRef.current;
     image.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const state = stateRef.current;
+      const canvasWidth = canvas.width / state.dpr;
+      const canvasHeight = canvas.height / state.dpr;
+      const imageWidth = image.width;
+      const imageHeight = image.height;
+
+      // Fit floor plan
+      const scaleX = canvasWidth / imageWidth;
+      const scaleY = canvasHeight / imageHeight;
+      state.scale = Math.min(scaleX, scaleY) * 0.95;
+      state.offsetX = (canvasWidth - imageWidth * state.scale) / 2;
+      state.offsetY = (canvasHeight - imageHeight * state.scale) / 2;
+
       setImageLoaded(true);
-      fitFloorPlan();
-      render();
+
+      // Initial render
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.save();
+      ctx.translate(state.offsetX, state.offsetY);
+      ctx.scale(state.scale, state.scale);
+      ctx.drawImage(image, 0, 0);
+      ctx.restore();
     };
     image.onerror = () => {
       console.error('Failed to load floor plan image');
     };
     image.src = floorPlanPath;
-  }, [floorPlanPath, fitFloorPlan, render]);
+  }, [floorPlanPath]);
 
   // Setup canvas and event listeners
   useEffect(() => {
@@ -274,10 +295,10 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     };
   }, [resizeCanvas, handleTouchStart, handleTouchMove, handleTouchEnd, handleMouseDown, handleMouseMove, handleMouseUp, handleClick]);
 
-  // Render when pathHistory changes
+  // Render when pathHistory or userPosition changes
   useEffect(() => {
     render();
-  }, [pathHistory, render]);
+  }, [pathHistory, userPosition, render]);
 
   // Calculate user dot position
   const userDotStyle = userPosition ? (() => {
