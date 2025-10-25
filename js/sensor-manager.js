@@ -201,18 +201,20 @@ class SensorManager {
             if (isAbsoluteOrientation) {
                 // For iOS/Safari: webkitCompassHeading is already absolute
                 // But we need to adjust for how the screen is oriented
+                // webkitCompassHeading reports the direction the device TOP is pointing
+                // We need to know the direction the SCREEN TOP (user's view) is pointing
                 // Portrait: 0, Landscape-right: 90, Upside-down: 180, Landscape-left: -90/270
                 if (this.screenOrientationAngle === -90 || this.screenOrientationAngle === 270) {
-                    // Landscape-left: device top is pointing left
-                    adjustedHeading = (rawHeading - 90 + 360) % 360;
-                } else if (this.screenOrientationAngle === 90) {
-                    // Landscape-right: device top is pointing right
+                    // Landscape-left: device top points left of screen, so screen top points 90° clockwise from device top
                     adjustedHeading = (rawHeading + 90) % 360;
+                } else if (this.screenOrientationAngle === 90) {
+                    // Landscape-right: device top points right of screen, so screen top points 90° counter-clockwise from device top
+                    adjustedHeading = (rawHeading - 90 + 360) % 360;
                 } else if (this.screenOrientationAngle === 180) {
-                    // Upside-down
+                    // Upside-down: screen top points opposite direction from device top
                     adjustedHeading = (rawHeading + 180) % 360;
                 }
-                // Portrait (0): no adjustment needed
+                // Portrait (0): screen top = device top, no adjustment needed
             }
 
             // Apply circular averaging for compass
