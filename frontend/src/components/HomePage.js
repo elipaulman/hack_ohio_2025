@@ -1,74 +1,91 @@
 import React from 'react';
 
-function HomePage() {
+const OSU_SCARLET = '#B23A3A';
+const OSU_GRAY = '#666666';
+
+function HomePage({ onNavigate }) {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main content (left) */}
-          <section className="flex-1">
-            <h1 className="text-3xl font-semibold mb-4">Explore great places</h1>
-            <p className="text-gray-600 mb-6">Discover recommended hotels, categories and suggestions curated for you.</p>
+    <div className="min-h-screen" style={{ background: '#fafafa', color: OSU_GRAY }}>
+      <main className="container mx-auto px-4 py-10">
+        <header className="rounded-2xl shadow-md overflow-hidden mb-8" style={{ background: `linear-gradient(90deg, ${OSU_SCARLET} 0%, rgba(178,58,58,0.9) 60%)` }}>
+          <div className="p-8 text-white flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold">Ohio State Navigation</h1>
+              <p className="mt-2 text-sm md:text-base opacity-90">Indoor & outdoor wayfinding across the Ohio State campus — start from a building, jump to floor plans, or calibrate indoor tracking.</p>
+            </div>
+            <div className="mt-4 md:mt-0 flex gap-3">
+              <button onClick={() => onNavigate && onNavigate('outdoor-map')} style={{ background: '#ffffff', color: OSU_SCARLET }} className="px-4 py-2 rounded-lg font-medium shadow">Open Outdoor Map</button>
+              <button onClick={() => onNavigate && onNavigate('indoor-nav')} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)' }} className="px-4 py-2 rounded-lg font-medium">Open Indoor Nav</button>
+            </div>
+          </div>
+        </header>
 
-            <h3 className="font-semibold mb-3">Recommended Hotels</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <article className="bg-white rounded-2xl shadow overflow-hidden">
-                <div className="h-40 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/reserve/8T8J12VQxyqCiQFGa2ct_bahamas-atlantis.jpg?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80')" }} />
-                <div className="p-4">
-                  <h4 className="text-lg font-semibold">Loremipsum..</h4>
-                  <div className="flex items-center justify-between mt-2 text-sm text-gray-600">
-                    <div className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>4.5</div>
-                    <div className="font-medium">$1800 <span className="text-gray-400 text-sm">/wk</span></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Primary cards */}
+          <section className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow">
+              <h2 className="text-xl font-semibold" style={{ color: OSU_SCARLET }}>Quick Actions</h2>
+              <p className="text-sm text-gray-600 mt-1">Fast access to common tasks on campus</p>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button onClick={() => onNavigate && onNavigate('outdoor-map')} className="flex items-center gap-3 p-4 rounded-xl border hover:shadow-md" style={{ borderColor: '#f0f0f0' }}>
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden>🗺️</div>
+                  <div className="text-left">
+                    <div className="font-medium">Campus Map</div>
+                    <div className="text-sm text-gray-500">See outdoor routes and building locations</div>
+                  </div>
+                </button>
+
+                <button onClick={() => onNavigate && onNavigate('indoor-nav')} className="flex items-center gap-3 p-4 rounded-xl border hover:shadow-md" style={{ borderColor: '#f0f0f0' }}>
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden>📍</div>
+                  <div className="text-left">
+                    <div className="font-medium">Indoor Navigation</div>
+                    <div className="text-sm text-gray-500">Open floor plans, calibrate position, and start tracking</div>
+                  </div>
+                </button>
+
+                <div className="flex items-center gap-3 p-4 rounded-xl border" style={{ borderColor: '#f0f0f0' }}>
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden>🏫</div>
+                  <div className="text-left">
+                    <div className="font-medium">Scott Lab</div>
+                    <div className="text-sm text-gray-500">40.00245, -83.01426 — Open indoor map for Scott Lab</div>
                   </div>
                 </div>
-              </article>
 
-              <article className="bg-white rounded-2xl shadow overflow-hidden">
-                <div className="h-40 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80')" }} />
-                <div className="p-4">
-                  <h4 className="text-lg font-semibold">Loremipsum..</h4>
-                  <div className="flex items-center justify-between mt-2 text-sm text-gray-600">
-                    <div className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>4.5</div>
-                    <div className="font-medium">$1800 <span className="text-gray-400 text-sm">/wk</span></div>
+                <div className="flex items-center gap-3 p-4 rounded-xl border" style={{ borderColor: '#f0f0f0' }}>
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden>📅</div>
+                  <div className="text-left">
+                    <div className="font-medium">Class Schedule</div>
+                    <div className="text-sm text-gray-500">Quick access to Scott Lab schedule and events</div>
                   </div>
                 </div>
-              </article>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow">
+              <h3 className="font-semibold">Campus Spotlight</h3>
+              <p className="text-sm text-gray-600 mt-2">Featured location: Scott Laboratory. Use indoor navigation for floor plans and real-time tracking inside the building.</p>
+
+              <div className="mt-4 flex gap-3">
+                <button onClick={() => onNavigate && onNavigate('indoor-nav')} className="px-4 py-2 rounded-lg" style={{ background: OSU_SCARLET, color: '#fff' }}>Open Scott Lab Map</button>
+                <button type="button" aria-label="View Scott Lab details" className="px-4 py-2 rounded-lg" style={{ border: '1px solid #eee', background: 'transparent' }}>View Details</button>
+              </div>
             </div>
           </section>
 
-          {/* Sidebar card (right) */}
-          <aside className="w-full lg:w-96">
-            <div className="bg-white border border-gray-200 rounded-3xl shadow-lg overflow-hidden">
-              <div className="h-28 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1622180203374-9524a54b734d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')" }} />
-              <div className="p-4">
-                <h4 className="text-xl font-semibold">Loremipsum Title</h4>
-                <p className="text-sm text-gray-600">Massive Dynamic</p>
+          {/* Sidebar */}
+          <aside>
+            <div className="bg-white rounded-2xl p-6 shadow space-y-4">
+              <h4 className="font-semibold">Status</h4>
+              <div className="text-sm text-gray-600">Indoor positioning: <strong>Calibrated</strong></div>
+              <div className="text-sm text-gray-600">Outdoor GPS: <strong>Available</strong></div>
 
-                <div className="mt-4">
-                  <input type="text" className="w-full border rounded-lg px-3 py-2" placeholder="Search something..." />
+              <div className="pt-2">
+                <h5 className="font-medium">Quick Links</h5>
+                <div className="mt-2 flex flex-col gap-2">
+                  <button onClick={() => onNavigate && onNavigate('outdoor-map')} className="text-left px-3 py-2 rounded-lg" style={{ border: '1px solid #f0f0f0' }}>Open Outdoor Map</button>
+                  <button onClick={() => onNavigate && onNavigate('indoor-nav')} className="text-left px-3 py-2 rounded-lg" style={{ border: '1px solid #f0f0f0' }}>Open Indoor Navigator</button>
                 </div>
-
-                <div className="mt-6">
-                  <h5 className="font-semibold mb-2">Category</h5>
-                  <div className="flex gap-3 flex-wrap">
-                    <div className="flex flex-col items-center justify-center w-20 h-20 bg-green-100 rounded-2xl text-green-600 p-2">Hotel</div>
-                    <div className="flex flex-col items-center justify-center w-20 h-20 bg-yellow-100 rounded-2xl text-yellow-600 p-2">Bus</div>
-                    <div className="flex flex-col items-center justify-center w-20 h-20 bg-indigo-100 rounded-2xl text-indigo-600 p-2">Hills</div>
-                    <div className="flex flex-col items-center justify-center w-20 h-20 bg-pink-100 rounded-2xl text-pink-600 p-2">Beach</div>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <h5 className="font-semibold mb-2">Suggested By</h5>
-                  <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl">
-                    <img className="w-12 h-12 rounded-lg object-cover" src="https://images.unsplash.com/photo-1439130490301-25e322d88054?ixlib=rb-1.2.1&auto=format&fit=crop&w=1189&q=80" alt="suggested" />
-                    <div>
-                      <div className="font-medium">Massive Dynamic</div>
-                      <div className="text-sm text-gray-500">4.5 • $1800/wk</div>
-                    </div>
-                  </div>
-                </div>
-
               </div>
             </div>
           </aside>

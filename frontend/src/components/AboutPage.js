@@ -1,5 +1,7 @@
 import React from 'react';
 
+const ACCENT = '#B23A3A'; // softer OSU scarlet
+
 function AboutPage() {
   const teamMembers = ['Elijah Paulman', 'Caue Faria', 'Arnac Chennamaneni', 'Artur Ulsenheimer'];
 
@@ -12,12 +14,10 @@ function AboutPage() {
           <section className="flex-1 space-y-6">
 
             {/* Hero Card */}
-            <div className="bg-white rounded-2xl shadow overflow-hidden">
-              <div
-                className="h-48 bg-cover bg-center"
-                style={{ backgroundImage: "url('/assets/scott-lab-basement.png')" }}
-              />
-              <div className="p-6">
+            <div className="relative rounded-2xl overflow-hidden shadow">
+              <img src="/assets/scott-lab-basement.png" alt="Scott Lab" className="w-full h-48 object-cover block" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.4))' }} />
+              <div className="p-6 bg-white rounded-b-2xl -mt-6 relative z-10">
                 <h1 className="text-3xl font-semibold mb-2">About Our Project</h1>
                 <p className="text-gray-600">A lightweight, sensor-driven indoor navigation PWA built for HackOHI/O 2025.</p>
               </div>
@@ -25,7 +25,7 @@ function AboutPage() {
 
             {/* Indoor Navigation */}
             <article className="bg-white rounded-2xl shadow overflow-hidden p-6 hover:shadow-lg transition-shadow duration-200">
-              <h2 className="text-xl font-semibold mb-3">Indoor Navigation System</h2>
+              <h2 className="text-xl font-semibold mb-3" style={{ color: ACCENT }}>Indoor Navigation System</h2>
               <p className="text-gray-700 mb-3">
                 Built for the Friction Finder Challenge by Honda, this app addresses navigation friction inside large
                 buildings like Scott Laboratory by leveraging device sensors instead of additional infrastructure.
@@ -41,8 +41,8 @@ function AboutPage() {
               <h2 className="text-xl font-semibold mb-4">How It Works</h2>
               <ul className="space-y-4 text-gray-700">
                 {[
-                  { title: 'Step Detection', description: 'Detects steps using accelerometer patterns with adaptive thresholds.', color: 'text-blue-500', icon: 'M9 12l2 2 4-4' },
-                  { title: 'Heading Fusion', description: 'Combines gyroscope and compass readings to stabilize direction estimates.', color: 'text-indigo-500', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z M12 14v7' },
+                  { title: 'Step Detection', description: 'Detects steps using accelerometer patterns with adaptive thresholds.', color: 'text-red-500', icon: 'M9 12l2 2 4-4' },
+                  { title: 'Heading Fusion', description: 'Combines gyroscope and compass readings to stabilize direction estimates.', color: 'text-red-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z M12 14v7' },
                   { title: 'Dead Reckoning', description: 'Computes relative position from step count and heading with occasional recalibration.', color: 'text-green-500', icon: 'M3 10h4l3 8 4-16 3 8h4' },
                   { title: 'Calibration', description: 'Periodic recalibration to limit drift and improve long-term accuracy.', color: 'text-yellow-500', icon: 'M13 16h-1v-4h-1m1-4h.01M12 20h.01' },
                 ].map(({ title, description, color, icon }) => (
@@ -69,7 +69,7 @@ function AboutPage() {
               <div className="grid grid-cols-2 gap-4">
                 {teamMembers.map((name) => (
                   <div key={name} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-400 flex items-center justify-center text-white font-bold">
+                    <div className="w-12 h-12 rounded-lg" style={{ background: `linear-gradient(135deg, ${ACCENT}, #8b0000)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
                       {name.split(' ')[0][0]}
                     </div>
                     <div>
@@ -92,15 +92,15 @@ function AboutPage() {
                 <p className="text-sm text-gray-600 mb-3">Core tools powering the project</p>
                 <div className="flex flex-wrap gap-2">
                   {['React', 'JavaScript', 'Canvas', 'Device Sensors', 'PWA'].map((tech) => (
-                    <span key={tech} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">{tech}</span>
+                    <span key={tech} className="bg-red-50 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">{tech}</span>
                   ))}
                 </div>
                 <div className="mt-4">
                   <h5 className="font-semibold mb-1">Project Links</h5>
                   <div className="flex flex-col gap-2">
-                    <a className="text-sm text-indigo-600 hover:underline" href="https://github.com/elipaulman/hack_ohio_2025">GitHub Repository</a>
-                    <a className="text-sm text-indigo-600 hover:underline" href="/manifest.json">PWA Manifest</a>
-                    <a className="text-sm text-indigo-600 hover:underline" href="/README.md">Project README</a>
+                    <a className="text-sm" style={{ color: ACCENT }} href="https://github.com/elipaulman/hack_ohio_2025">GitHub Repository</a>
+                    <a className="text-sm" style={{ color: ACCENT }} href="/manifest.json">PWA Manifest</a>
+                    <a className="text-sm" style={{ color: ACCENT }} href="/README.md">Project README</a>
                   </div>
                 </div>
               </div>
