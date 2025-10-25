@@ -63,21 +63,31 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     if (!path || path.length < 2) return;
 
     const state = stateRef.current;
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(33, 150, 243, 0.85)';
-    ctx.lineWidth = 2.5 / state.scale;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    const now = Date.now();
+    const maxAgeMs = 1000 * 60 * 3; // fade older than ~3 minutes
+    const baseWidth = 4.5 / state.scale;
 
-    path.forEach((point, index) => {
-      if (index === 0) {
-        ctx.moveTo(point.x, point.y);
-      } else {
-        ctx.lineTo(point.x, point.y);
-      }
-    });
+    for (let i = 1; i < path.length; i++) {
+      const start = path[i - 1];
+      const end = path[i];
+      const segmentAge = now - (end.timestamp ?? start.timestamp ?? now);
+      const ageRatio = Math.min(Math.max(segmentAge / maxAgeMs, 0), 1);
+      const opacity = 0.15 + (1 - ageRatio) * 0.7;
+      const width = baseWidth * (0.75 + (1 - ageRatio) * 0.5);
 
-    ctx.stroke();
+      ctx.beginPath();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = `rgba(33, 150, 243, ${opacity})`;
+      ctx.lineWidth = width;
+      ctx.shadowColor = 'rgba(33, 150, 243, 0.35)';
+      ctx.shadowBlur = 8 / state.scale;
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
   }, []);
 
   // Render function
