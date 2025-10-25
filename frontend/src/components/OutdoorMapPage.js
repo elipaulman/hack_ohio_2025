@@ -16,10 +16,10 @@ const center = { lat: 40.002450315530794, lng: -83.01425605739048 }; // Scott La
 
 // Define building entrances
 const entrances = [
-  { name: "North Entrance", lat: 40.002720, lng: -83.014444 },
-  { name: "South Entrance", lat: 40.001680, lng: -83.015160 },
-  { name: "East Entrance", lat: 40.002200, lng: -83.013900 },
-  { name: "West Entrance", lat: 40.002350, lng: -83.015950 },
+  { name: "North Entrance 1", lat: 40.0027022, lng: -83.0138185 },
+  { name: "North Entrance 2", lat: 40.0025985, lng: -83.0143150 },
+  { name: "East Entrance", lat: 40.0021426, lng: -83.0136230 },
+  { name: "West Entrance", lat: 40.0022140, lng: -83.0146362 },
 ];
 
 // Helper to find nearest entrance
@@ -173,7 +173,7 @@ export default function ScottLabMap({ onNavigate }) {
             }}
             icon={{
               path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 8,
+              scale: 14,
               fillColor: "#1a73e8",
               fillOpacity: 1,
               strokeWeight: 2,
