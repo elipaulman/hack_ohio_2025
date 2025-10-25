@@ -151,7 +151,7 @@
 
 .calibration-panel,
 .main-controls {
-  position: absolute;
+  position: fixed;
   left: 16px;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0));
@@ -185,7 +185,7 @@
 }
 
 .step-calibration-panel {
-  position: absolute;
+  position: fixed;
   left: 24px;
   right: 24px;
   bottom: calc(152px + env(safe-area-inset-bottom, 0));
@@ -216,7 +216,7 @@
 }
 
 .debug-panel {
-  position: absolute;
+  position: fixed;
   top: calc(80px + env(safe-area-inset-top, 0));
   left: 16px;
   right: 16px;
