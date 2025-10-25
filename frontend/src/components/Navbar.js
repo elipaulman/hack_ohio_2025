@@ -20,6 +20,12 @@ function Navbar({ currentPage, onNavigate }) {
               Indoor Nav
             </button>
             <button
+              className={`hover:text-gray-900 ${currentPage === 'outdoor-map' ? 'text-blue-600 font-semibold' : ''}`}
+              onClick={() => onNavigate('outdoor-map')}
+            >
+              Outdoor Map
+            </button>
+            <button
               className={`hover:text-gray-900 ${currentPage === 'about' ? 'text-blue-600 font-semibold' : ''}`}
               onClick={() => onNavigate('about')}
             >
@@ -49,6 +55,12 @@ function Navbar({ currentPage, onNavigate }) {
           onClick={() => onNavigate('indoor-nav')}
         >
           Indoor Nav
+        </button>
+        <button
+          className={`px-4 py-2 ${currentPage === 'outdoor-map' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          onClick={() => onNavigate('outdoor-map')}
+        >
+          Outdoor Map
         </button>
         <button
           className={`px-4 py-2 ${currentPage === 'about' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
