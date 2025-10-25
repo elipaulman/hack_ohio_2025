@@ -37,12 +37,11 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   // Handle orientation data
   const handleOrientationData = useCallback((data) => {
-    const fusedAdjustedHeading = applyBuildingOffset(data.heading);
     const compassAdjustedHeading = applyBuildingOffset(
       data.compassHeading !== undefined ? data.compassHeading : data.heading
     );
 
-    positionTracker.updateHeading(fusedAdjustedHeading);
+    positionTracker.updateHeading(compassAdjustedHeading);
     setDisplayHeading(compassAdjustedHeading);
   }, [applyBuildingOffset, positionTracker]);
 
