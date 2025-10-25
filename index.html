@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2196F3">
+    <title>Indoor Navigator - Scott Lab</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header>
+            <h1>Scott Lab Navigator</h1>
+            <div id="status-bar">
+                <span id="status-text">Ready</span>
+                <span id="accuracy-indicator" class="accuracy-unknown">●</span>
+            </div>
+        </header>
+
+        <!-- Main Canvas Container -->
+        <div id="canvas-container">
+            <canvas id="floor-plan-canvas"></canvas>
+            <div id="user-dot">
+                <div id="direction-arrow"></div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div id="control-panel">
+            <!-- Calibration Mode -->
+            <div id="calibration-panel" class="panel hidden">
+                <p class="instruction">Tap the floor plan to set your starting position</p>
+                <button id="calibration-done-btn" class="btn btn-primary">Done</button>
+            </div>
+
+            <!-- Main Controls -->
+            <div id="main-controls" class="panel">
+                <div class="button-group">
+                    <button id="start-btn" class="btn btn-primary">Start Tracking</button>
+                    <button id="stop-btn" class="btn btn-secondary hidden">Stop</button>
+                    <button id="recalibrate-btn" class="btn btn-secondary" disabled>Recalibrate</button>
+                </div>
+
+                <!-- Step Calibration -->
+                <div id="step-calibration" class="calibration-section hidden">
+                    <h3>Step Calibration</h3>
+                    <p>Walk 10 steps in a straight line, then click "Done"</p>
+                    <div class="calibration-info">
+                        <span>Steps detected: <strong id="calib-step-count">0</strong></span>
+                    </div>
+                    <button id="step-calib-done-btn" class="btn btn-small">Done Calibrating</button>
+                </div>
+
+                <!-- Info Display -->
+                <div id="info-display">
+                    <div class="info-row">
+                        <span>Steps:</span>
+                        <strong id="step-count">0</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Heading:</span>
+                        <strong id="heading-value">0°</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Confidence:</span>
+                        <strong id="confidence-value">High</strong>
+                    </div>
+                </div>
+
+                <!-- Debug Panel (Toggleable) -->
+                <details id="debug-panel">
+                    <summary>Debug Info</summary>
+                    <div class="debug-content">
+                        <div class="debug-row">
+                            <span>Accel X:</span>
+                            <span id="debug-accel-x">0.00</span>
+                        </div>
+                        <div class="debug-row">
+                            <span>Accel Y:</span>
+                            <span id="debug-accel-y">0.00</span>
+                        </div>
+                        <div class="debug-row">
+                            <span>Accel Z:</span>
+                            <span id="debug-accel-z">0.00</span>
+                        </div>
+                        <div class="debug-row">
+                            <span>Gyro Alpha:</span>
+                            <span id="debug-gyro-alpha">0.00</span>
+                        </div>
+                        <div class="debug-row">
+                            <span>Compass:</span>
+                            <span id="debug-compass">0.00</span>
+                        </div>
+                        <div class="debug-row">
+                            <span>Position:</span>
+                            <span id="debug-position">0, 0</span>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <p id="loading-text">Initializing...</p>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Permission Required</h2>
+            <p id="error-message">This app requires access to your device's motion sensors.</p>
+            <button id="error-close-btn" class="btn btn-primary">OK</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/sensor-manager.js"></script>
+    <script src="js/step-detector.js"></script>
+    <script src="js/position-tracker.js"></script>
+    <script src="js/canvas-renderer.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch((error) => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

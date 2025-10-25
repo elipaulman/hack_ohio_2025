@@ -1,0 +1,551 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #2196F3;
+    --primary-dark: #1976D2;
+    --secondary-color: #757575;
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --danger-color: #F44336;
+    --bg-color: #F5F5F5;
+    --surface-color: #FFFFFF;
+    --text-primary: #212121;
+    --text-secondary: #666666;
+    --border-color: #E0E0E0;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height for better mobile support */
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y; /* Allow vertical panning/scrolling */
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height for better mobile support */
+}
+
+/* Header - Compact & Clean */
+header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 14px 20px;
+    box-shadow: var(--shadow);
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+header h1 {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+}
+
+#status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#accuracy-indicator {
+    font-size: 22px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.accuracy-high { color: var(--success-color); }
+.accuracy-medium { color: var(--warning-color); }
+.accuracy-low { color: var(--danger-color); }
+.accuracy-unknown { color: white; opacity: 0.6; }
+
+/* Canvas Container */
+#canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #D0D0D0;
+    touch-action: none; /* Prevent scrolling, allow custom pan/zoom */
+    min-height: 0; /* Important for flex children */
+}
+
+#floor-plan-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+/* User Dot - Hidden (replaced by arrow) */
+#user-dot {
+    position: absolute;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+}
+
+#user-dot.visible {
+    opacity: 1;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        filter: drop-shadow(0 4px 12px rgba(33, 150, 243, 0.6));
+    }
+    50% {
+        filter: drop-shadow(0 4px 12px rgba(33, 150, 243, 0.6))
+                drop-shadow(0 0 20px rgba(33, 150, 243, 0.8));
+    }
+}
+
+#direction-arrow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-bottom: 28px solid var(--primary-color);
+    filter: drop-shadow(0 4px 12px rgba(33, 150, 243, 0.6))
+            drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    transition: transform 0.15s ease-out;
+    animation: pulse 2.5s ease-in-out infinite;
+}
+
+/* Control Panel - Cleaner Layout */
+#control-panel {
+    background: var(--surface-color);
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+    z-index: 50;
+    max-height: 55vh; /* Slightly increased for better usability */
+    overflow-y: auto;
+    overflow-y: overlay; /* Use overlay scrolling on supported browsers */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    overscroll-behavior: contain; /* Prevent scroll chaining to body */
+    flex-shrink: 0;
+    flex-grow: 0;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    position: relative;
+    touch-action: pan-y; /* Allow vertical scrolling */
+    /* Ensure panel stays above fold on iOS */
+    margin-bottom: 0;
+}
+
+.panel {
+    padding: 20px 20px 100px 20px; /* Extra bottom padding for Safari nav bar */
+    /* Use max() to ensure enough space for Safari's bottom nav bar */
+    padding-bottom: max(100px, env(safe-area-inset-bottom, 20px) + 80px);
+}
+
+.instruction {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    text-align: center;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+/* Buttons - Larger & More Touchable */
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.btn {
+    flex: 1;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 52px;
+    touch-action: manipulation;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:active {
+    transform: scale(0.97);
+    box-shadow: none;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-primary:disabled {
+    background: #BDBDBD;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    box-shadow: none;
+}
+
+.btn-secondary:hover {
+    background: #F5F5F5;
+    border-color: #BDBDBD;
+}
+
+.btn-secondary:disabled {
+    background: #F5F5F5;
+    color: #BDBDBD;
+    cursor: not-allowed;
+    border-color: #E0E0E0;
+}
+
+.btn-secondary:active {
+    background: #EEEEEE;
+}
+
+.btn-small {
+    padding: 12px 20px;
+    font-size: 14px;
+    min-height: 44px;
+}
+
+/* Calibration Section - More Prominent */
+.calibration-section {
+    background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+    border: 2px solid #FFD54F;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.calibration-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.calibration-section p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.calibration-info {
+    margin: 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Info Display - Card Style */
+#info-display {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-row span {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.info-row strong {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* Debug Panel - Cleaner */
+#debug-panel {
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    margin-top: 12px;
+}
+
+#debug-panel summary {
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 12px 0;
+    user-select: none;
+    list-style-position: inside;
+}
+
+#debug-panel summary::-webkit-details-marker {
+    color: var(--primary-color);
+}
+
+.debug-content {
+    background: #F9F9F9;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.debug-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+
+.debug-row span:first-child {
+    color: var(--text-secondary);
+}
+
+.debug-row span:last-child {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Hidden Class */
+.hidden {
+    display: none !important;
+}
+
+/* Loading Overlay */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.spinner {
+    width: 56px;
+    height: 56px;
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#loading-text {
+    color: white;
+    margin-top: 20px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* Error Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 24px;
+}
+
+.modal-content {
+    background: white;
+    padding: 28px;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.modal-content p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    header h1 {
+        font-size: 22px;
+    }
+
+    #status-bar {
+        font-size: 15px;
+    }
+
+    .btn {
+        font-size: 17px;
+    }
+}
+
+/* iPhone Notch Support */
+@supports (padding: env(safe-area-inset-top)) {
+    header {
+        padding-top: calc(14px + env(safe-area-inset-top));
+    }
+}
+
+/* Bottom Safe Area - Account for Safari Address Bar */
+/* Bottom padding is now handled in the main .panel rule above */
+
+/* Add extra bottom padding when not in standalone mode (Safari browser) */
+@media (display-mode: browser) {
+    .panel {
+        /* Safari's bottom nav bar is ~44px, plus tap targets need 44px minimum */
+        padding-bottom: max(120px, env(safe-area-inset-bottom, 20px) + 100px);
+    }
+}
+
+/* When in standalone mode (added to home screen), use safe areas */
+@media (display-mode: standalone) {
+    .panel {
+        /* Less padding needed in standalone mode, just safe area */
+        padding-bottom: max(40px, calc(40px + env(safe-area-inset-bottom, 0px)));
+    }
+}
+
+/* Landscape Mode - Compact */
+@media (orientation: landscape) and (max-height: 500px) {
+    header {
+        padding: 10px 20px;
+    }
+
+    header h1 {
+        font-size: 17px;
+        margin-bottom: 2px;
+    }
+
+    #status-bar {
+        font-size: 13px;
+    }
+
+    #control-panel {
+        max-height: 45vh;
+    }
+
+    .panel {
+        padding: 16px 20px;
+    }
+
+    .btn {
+        min-height: 44px;
+        padding: 12px 16px;
+        font-size: 15px;
+    }
+
+    #info-display {
+        padding: 12px;
+    }
+
+    .info-row {
+        padding: 8px 0;
+        font-size: 14px;
+    }
+}
+
+/* Small iPhones (SE, 12/13 mini) */
+@media (max-width: 375px) {
+    header h1 {
+        font-size: 17px;
+    }
+
+    .btn {
+        font-size: 15px;
+        padding: 14px 16px;
+    }
+
+    .instruction {
+        font-size: 14px;
+    }
+}
+
+/* Prevent overscroll bounce on iOS */
+html {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    position: relative; /* Changed from fixed to allow internal scrolling */
+    width: 100%;
+    height: 100%;
+    overscroll-behavior: none; /* Prevent pull-to-refresh and overscroll */
+}
+
+/* Better tap feedback */
+.btn, #debug-panel summary, #floor-plan-canvas {
+    -webkit-touch-callout: none;
+    user-select: none;
+}
