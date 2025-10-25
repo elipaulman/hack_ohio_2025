@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 
 const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, onCanvasClick }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const imageRef = useRef(new Image());
   const [imageLoaded, setImageLoaded] = useState(false);
-  const TRAIL_POINT_LIMIT = 60;
 
   // Pan and zoom state
   const stateRef = useRef({
@@ -65,8 +64,8 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
     const state = stateRef.current;
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(33, 150, 243, 0.5)';
-    ctx.lineWidth = 3 / state.scale;
+    ctx.strokeStyle = 'rgba(33, 150, 243, 0.85)';
+    ctx.lineWidth = 2.5 / state.scale;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -131,42 +130,6 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
     return { x: screenX, y: screenY };
   }, []);
-
-  const trailDots = useMemo(() => {
-    if (!pathHistory || pathHistory.length < 2) return [];
-
-    const cappedHistory = pathHistory.slice(
-      Math.max(pathHistory.length - TRAIL_POINT_LIMIT - 1, 0),
-      pathHistory.length - 1
-    );
-
-    if (!cappedHistory.length) return [];
-
-    const total = cappedHistory.length;
-    const dots = cappedHistory.map((point, idx) => {
-      const coords = canvasToScreen(point.x, point.y);
-
-      if (!Number.isFinite(coords.x) || !Number.isFinite(coords.y)) {
-        return null;
-      }
-
-      const progress = (idx + 1) / total;
-      const size = 6 + progress * 10;
-      const opacity = 0.18 + progress * 0.55;
-
-      return {
-        left: `${coords.x}px`,
-        top: `${coords.y}px`,
-        width: `${size}px`,
-        height: `${size}px`,
-        opacity,
-        transform: 'translate(-50%, -50%)',
-        zIndex: 8 + Math.floor(progress * 2)
-      };
-    });
-
-    return dots.filter(Boolean);
-  }, [pathHistory, canvasToScreen]);
 
   // Touch handlers
   const getTouchDistance = (touches) => {
@@ -354,13 +317,6 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none' }} />
-      {trailDots.map((style, index) => (
-        <div
-          key={`trail-${index}`}
-          className="trail-dot"
-          style={style}
-        />
-      ))}
       {userPosition && (
         <div
           style={{
@@ -378,8 +334,8 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
               height: 0,
               borderLeft: '14px solid transparent',
               borderRight: '14px solid transparent',
-              borderBottom: '28px solid #2196F3',
-              filter: 'drop-shadow(0 4px 12px rgba(33, 150, 243, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+              borderTop: '28px solid #2196F3',
+              filter: 'drop-shadow(0 0 -12px rgba(33, 150, 243, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
               top: '50%',
               left: '50%'
             }}
