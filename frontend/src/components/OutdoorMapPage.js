@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   GoogleMap,
   Marker,
@@ -12,7 +12,7 @@ const containerStyle = {
   height: "100vh",
 };
 
-const center = { lat: 40.0027, lng: -83.0151 }; // Scott Lab center
+const center = { lat: 40.002450315530794, lng: -83.01425605739048 }; // Scott Lab center
 
 // Define building entrances
 const entrances = [
@@ -36,7 +36,7 @@ function findClosestEntrance(lat, lng) {
   return closest;
 }
 
-export default function ScottLabMap() {
+export default function ScottLabMap({ onNavigate }) {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_KEY,
     libraries: ["places"],
@@ -46,6 +46,8 @@ export default function ScottLabMap() {
   const [closestEntrance, setClosestEntrance] = useState(null);
   const [directions, setDirections] = useState(null);
   const [directionsRequest, setDirectionsRequest] = useState(null);
+  const [showGeofenceModal, setShowGeofenceModal] = useState(false);
+  const geofenceTriggeredRef = useRef(false);
 
   const mapOptions = useMemo(
     () => ({
@@ -62,8 +64,8 @@ export default function ScottLabMap() {
     if (navigator.geolocation) {
       let lastPosition = null;
       let lastEntrance = null;
-
-      const watchId = navigator.geolocation.watchPosition(
+      let watchId = null;
+      watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           const current = { lat: latitude, lng: longitude };
@@ -99,12 +101,32 @@ export default function ScottLabMap() {
               setDirectionsRequest(request);
             }
           }
+
+          // Geofence detection: if within ~50 meters of Scott Lab center, show modal
+          try {
+            const dLat = (latitude - center.lat) * 111320;
+            const dLon = (longitude - center.lng) * (111320 * Math.cos((latitude * Math.PI) / 180));
+            const distanceMeters = Math.sqrt(dLat * dLat + dLon * dLon);
+
+            const GEOFENCE_RADIUS_METERS = 50; // threshold
+            if (distanceMeters <= GEOFENCE_RADIUS_METERS) {
+              // only trigger once per session (use ref to avoid effect deps)
+              if (!geofenceTriggeredRef.current) {
+                setShowGeofenceModal(true);
+                geofenceTriggeredRef.current = true;
+              }
+            }
+          } catch (e) {
+            console.warn('Geofence check failed', e);
+          }
         },
         (error) => console.error("Geolocation error:", error),
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
 
-      return () => navigator.geolocation.clearWatch(watchId);
+      return () => {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      };
     } else {
       console.warn("Geolocation not supported in this browser.");
     }
@@ -190,6 +212,20 @@ export default function ScottLabMap() {
           />
         )}
       </GoogleMap>
+
+      {/* Geofence modal */}
+      {showGeofenceModal && (
+        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
+          <div style={{background: '#fff', padding: 20, borderRadius: 12, maxWidth: 420, width: '90%', boxShadow: '0 8px 24px rgba(0,0,0,0.2)'}}>
+            <h3 style={{margin: 0, marginBottom: 8}}>Scott Lab Nearby</h3>
+            <p style={{marginTop: 0, marginBottom: 16}}>We detected you're near Scott Lab. Would you like to open the indoor map to start indoor navigation?</p>
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
+              <button onClick={() => setShowGeofenceModal(false)} style={{padding: '8px 12px', background: '#eee', borderRadius: 8, border: 'none'}}>Dismiss</button>
+              <button onClick={() => { setShowGeofenceModal(false); if (onNavigate) onNavigate('indoor-nav'); }} style={{padding: '8px 12px', background: '#1a73e8', color: '#fff', borderRadius: 8, border: 'none'}}>Open Indoor Map</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overlay UI */}
       <div className="absolute top-3 left-3 bg-white p-3 rounded-xl shadow-lg">

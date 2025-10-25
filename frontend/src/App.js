@@ -20,7 +20,9 @@ function App() {
       {currentPage === 'home' && <HomePage />}
       {currentPage === 'about' && <AboutPage />}
       {currentPage === 'indoor-nav' && <IndoorNavPage onNavigate={handleNavigate} />}
-      {currentPage === 'outdoor-map' && <OutdoorMapPage />}
+      {currentPage === 'outdoor-map' && (
+        <OutdoorMapPage onNavigate={handleNavigate} />
+      )}
     </div>
   );
 }
