@@ -21,7 +21,7 @@ const IndoorNavPage = ({ onNavigate }) => {
   const [showDebug, setShowDebug] = useState(false);
   const [displayHeading, setDisplayHeading] = useState(0);
 
-  const buildingRotationOffset = 1;
+  const buildingRotationOffset = 91;
   const applyBuildingOffset = useCallback((headingValue) => {
     if (headingValue === null || headingValue === undefined || Number.isNaN(headingValue)) {
       return 0;
@@ -170,7 +170,7 @@ const IndoorNavPage = ({ onNavigate }) => {
       {/* Floor Plan Canvas */}
       <div className="canvas-container">
         <FloorPlanCanvas
-          floorPlanPath="/scott-lab-basement.png"
+          floorPlanPath="/scott-lab-basement.jpg"
           userPosition={positionTracker.isPositionSet ? positionTracker.position : null}
           heading={displayHeading}
           pathHistory={positionTracker.pathHistory}

@@ -5,6 +5,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
   const containerRef = useRef(null);
   const imageRef = useRef(new Image());
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [transform, setTransform] = useState({ scale: 1.0, offsetX: 0, offsetY: 0 });
 
   // Pan and zoom state
   const stateRef = useRef({
@@ -68,6 +69,8 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
         ctx.scale(state.scale, state.scale);
         ctx.drawImage(image, 0, 0);
         ctx.restore();
+
+        setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
       }
     });
   }, [imageLoaded]);
@@ -143,6 +146,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       state.velocityX *= friction;
       state.velocityY *= friction;
 
+      setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
       render();
       state.animationFrame = requestAnimationFrame(animateMomentum);
     } else {
@@ -252,6 +256,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       state.lastTouchY = e.touches[0].clientY;
       state.lastMoveTime = currentTime;
 
+      setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
       render();
     } else if (e.touches.length === 2 && state.touchStartDistance > 0) {
       e.preventDefault();
@@ -274,6 +279,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       state.offsetY = state.touchMidpoint.y - rect.top - canvasY * newScale;
       state.scale = newScale;
 
+      setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
       render();
     }
   }, [render]);
@@ -335,6 +341,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       state.lastTouchX = e.clientX;
       state.lastTouchY = e.clientY;
 
+      setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
       render();
     }
   }, [render]);
@@ -368,6 +375,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     state.offsetY = mouseY - canvasY * newScale;
     state.scale = newScale;
 
+    setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
     render();
   }, [render]);
 
@@ -411,6 +419,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       state.offsetY = (canvasHeight - imageHeight * state.scale) / 2;
 
       setImageLoaded(true);
+      setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
 
       // Initial render
       const ctx = canvas.getContext('2d');
