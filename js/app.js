@@ -195,14 +195,14 @@ class IndoorNavigatorApp {
         // When facing 60° in real life, that should be 0° (north/up) on the floor plan
         const adjustedHeading = (data.compassHeading - this.buildingRotationOffset + 360) % 360;
 
-        // Update heading in position tracker (use compass heading for accuracy)
+        // Update heading in position tracker (use adjusted heading for correct movement)
         this.positionTracker.setHeading(adjustedHeading);
 
         // Update debug display (show raw compass)
         this.updateDebugDisplay('compass', data.compassHeading);
 
-        // Update heading display (show adjusted heading that matches floor plan)
-        this.elements.headingValue.textContent = Math.round(adjustedHeading) + '°';
+        // Update heading display (show raw compass, matching debug)
+        this.elements.headingValue.textContent = Math.round(data.compassHeading) + '°';
 
         // Update user dot direction
         if (this.positionTracker.isPositionSet) {
