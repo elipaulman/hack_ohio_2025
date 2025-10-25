@@ -5,7 +5,7 @@ function Navbar({ currentPage, onNavigate }) {
     <header className="bg-white shadow">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="text-2xl font-bold">MySite</div>
+          <div className="text-2xl font-bold">Buckeye ACE</div>
           <nav className="hidden md:flex space-x-4 text-gray-600">
             <button
               className={`hover:text-gray-900 ${currentPage === 'home' ? 'text-blue-600 font-semibold' : ''}`}
