@@ -176,7 +176,7 @@ const IndoorNavPage = ({ onNavigate }) => {
         <FloorPlanCanvas
           floorPlanPath="/scott-lab-basement.png"
           userPosition={positionTracker.isPositionSet ? positionTracker.position : null}
-          heading={positionTracker.heading}
+          heading={displayHeading}
           pathHistory={positionTracker.pathHistory}
           onCanvasClick={setPosition}
         />
