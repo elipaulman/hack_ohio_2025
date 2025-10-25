@@ -16,8 +16,17 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     isPanning: false,
     lastTouchX: 0,
     lastTouchY: 0,
+    touchStartX: 0,
+    touchStartY: 0,
     touchStartDistance: 0,
     touchStartScale: 1.0,
+    touchMidpoint: { x: 0, y: 0 },
+    hasMoved: false,
+    moveThreshold: 5,
+    velocityX: 0,
+    velocityY: 0,
+    lastMoveTime: 0,
+    animationFrame: null,
     dpr: window.devicePixelRatio || 1
   });
 
@@ -46,6 +55,12 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
         const image = imageRef.current;
         const canvasWidth = canvas.width / state.dpr;
         const canvasHeight = canvas.height / state.dpr;
+
+        // Recalculate minScale based on new canvas size
+        const scaleX = canvasWidth / image.width;
+        const scaleY = canvasHeight / image.height;
+        const fitScale = Math.min(scaleX, scaleY) * 0.95;
+        state.minScale = fitScale * 0.8; // Allow zooming out slightly beyond fit
 
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         ctx.save();
@@ -116,6 +131,27 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     ctx.restore();
   }, [imageLoaded, pathHistory, drawPathHistory]);
 
+  // Momentum animation
+  const animateMomentum = useCallback(() => {
+    const state = stateRef.current;
+    const friction = 0.92;
+    const threshold = 0.1;
+
+    if (Math.abs(state.velocityX) > threshold || Math.abs(state.velocityY) > threshold) {
+      state.offsetX += state.velocityX;
+      state.offsetY += state.velocityY;
+      state.velocityX *= friction;
+      state.velocityY *= friction;
+
+      render();
+      state.animationFrame = requestAnimationFrame(animateMomentum);
+    } else {
+      state.velocityX = 0;
+      state.velocityY = 0;
+      state.animationFrame = null;
+    }
+  }, [render]);
+
   // Convert screen to canvas coordinates
   const screenToCanvas = useCallback((screenX, screenY) => {
     const canvas = canvasRef.current;
@@ -148,18 +184,40 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     return Math.sqrt(dx * dx + dy * dy);
   };
 
+  const getTouchMidpoint = (touches) => {
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2
+    };
+  };
+
   const handleTouchStart = useCallback((e) => {
     if (e.target !== canvasRef.current) return;
 
     const state = stateRef.current;
+
+    // Cancel any ongoing momentum animation
+    if (state.animationFrame) {
+      cancelAnimationFrame(state.animationFrame);
+      state.animationFrame = null;
+    }
+
     if (e.touches.length === 1) {
       state.isPanning = true;
       state.lastTouchX = e.touches[0].clientX;
       state.lastTouchY = e.touches[0].clientY;
+      state.touchStartX = e.touches[0].clientX;
+      state.touchStartY = e.touches[0].clientY;
+      state.hasMoved = false;
+      state.velocityX = 0;
+      state.velocityY = 0;
+      state.lastMoveTime = Date.now();
     } else if (e.touches.length === 2) {
       e.preventDefault();
+      state.isPanning = false;
       state.touchStartDistance = getTouchDistance(e.touches);
       state.touchStartScale = state.scale;
+      state.touchMidpoint = getTouchMidpoint(e.touches);
     }
   }, []);
 
@@ -168,21 +226,53 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
     if (e.touches.length === 1 && state.isPanning) {
       e.preventDefault();
+      const currentTime = Date.now();
       const dx = e.touches[0].clientX - state.lastTouchX;
       const dy = e.touches[0].clientY - state.lastTouchY;
+
+      // Check if moved beyond threshold
+      const totalDx = e.touches[0].clientX - state.touchStartX;
+      const totalDy = e.touches[0].clientY - state.touchStartY;
+      const distance = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+      if (distance > state.moveThreshold) {
+        state.hasMoved = true;
+      }
 
       state.offsetX += dx;
       state.offsetY += dy;
 
+      // Calculate velocity for momentum
+      const timeDelta = currentTime - state.lastMoveTime;
+      if (timeDelta > 0) {
+        state.velocityX = dx / timeDelta * 16; // Normalize to ~60fps
+        state.velocityY = dy / timeDelta * 16;
+      }
+
       state.lastTouchX = e.touches[0].clientX;
       state.lastTouchY = e.touches[0].clientY;
+      state.lastMoveTime = currentTime;
 
       render();
     } else if (e.touches.length === 2 && state.touchStartDistance > 0) {
       e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+
+      // Convert the midpoint to canvas coordinates before zoom
+      const canvasX = (state.touchMidpoint.x - rect.left - state.offsetX) / state.scale;
+      const canvasY = (state.touchMidpoint.y - rect.top - state.offsetY) / state.scale;
+
+      // Calculate new scale
       const distance = getTouchDistance(e.touches);
       const scaleChange = distance / state.touchStartDistance;
-      state.scale = Math.max(state.minScale, Math.min(state.maxScale, state.touchStartScale * scaleChange));
+      const newScale = Math.max(state.minScale, Math.min(state.maxScale, state.touchStartScale * scaleChange));
+
+      // Adjust offset to zoom toward the midpoint
+      state.offsetX = state.touchMidpoint.x - rect.left - canvasX * newScale;
+      state.offsetY = state.touchMidpoint.y - rect.top - canvasY * newScale;
+      state.scale = newScale;
 
       render();
     }
@@ -192,12 +282,24 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     const state = stateRef.current;
 
     if (e.touches.length === 0) {
+      // Start momentum animation if there's velocity
+      if (state.isPanning && (Math.abs(state.velocityX) > 1 || Math.abs(state.velocityY) > 1)) {
+        animateMomentum();
+      }
+
       state.isPanning = false;
       state.touchStartDistance = 0;
     } else if (e.touches.length === 1) {
       state.touchStartDistance = 0;
+      // Reset panning for remaining touch
+      state.lastTouchX = e.touches[0].clientX;
+      state.lastTouchY = e.touches[0].clientY;
+      state.touchStartX = e.touches[0].clientX;
+      state.touchStartY = e.touches[0].clientY;
+      state.hasMoved = false;
+      state.isPanning = true;
     }
-  }, []);
+  }, [animateMomentum]);
 
   // Mouse handlers
   const handleMouseDown = useCallback((e) => {
@@ -207,6 +309,9 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     state.isPanning = true;
     state.lastTouchX = e.clientX;
     state.lastTouchY = e.clientY;
+    state.touchStartX = e.clientX;
+    state.touchStartY = e.clientY;
+    state.hasMoved = false;
   }, []);
 
   const handleMouseMove = useCallback((e) => {
@@ -215,6 +320,14 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     if (state.isPanning) {
       const dx = e.clientX - state.lastTouchX;
       const dy = e.clientY - state.lastTouchY;
+
+      // Check if moved beyond threshold
+      const totalDx = e.clientX - state.touchStartX;
+      const totalDy = e.clientY - state.touchStartY;
+      const distance = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+      if (distance > state.moveThreshold) {
+        state.hasMoved = true;
+      }
 
       state.offsetX += dx;
       state.offsetY += dy;
@@ -230,9 +343,43 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     stateRef.current.isPanning = false;
   }, []);
 
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const state = stateRef.current;
+
+    // Get mouse position relative to canvas
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Convert to canvas coordinates before zoom
+    const canvasX = (mouseX - state.offsetX) / state.scale;
+    const canvasY = (mouseY - state.offsetY) / state.scale;
+
+    // Calculate new scale
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(state.minScale, Math.min(state.maxScale, state.scale * zoomFactor));
+
+    // Adjust offset to zoom toward mouse position
+    state.offsetX = mouseX - canvasX * newScale;
+    state.offsetY = mouseY - canvasY * newScale;
+    state.scale = newScale;
+
+    render();
+  }, [render]);
+
   const handleClick = useCallback((e) => {
     if (e.target !== canvasRef.current) return;
-    if (stateRef.current.isPanning) return;
+    const state = stateRef.current;
+
+    // Don't trigger click if user has panned
+    if (state.hasMoved) {
+      state.hasMoved = false;
+      return;
+    }
 
     const coords = screenToCanvas(e.clientX, e.clientY);
     if (onCanvasClick) {
@@ -256,7 +403,10 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       // Fit floor plan
       const scaleX = canvasWidth / imageWidth;
       const scaleY = canvasHeight / imageHeight;
-      state.scale = Math.min(scaleX, scaleY) * 0.95;
+      const fitScale = Math.min(scaleX, scaleY) * 0.95;
+
+      state.scale = fitScale;
+      state.minScale = fitScale * 0.8; // Allow zooming out slightly beyond fit
       state.offsetX = (canvasWidth - imageWidth * state.scale) / 2;
       state.offsetY = (canvasHeight - imageHeight * state.scale) / 2;
 
@@ -291,6 +441,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
     canvas.addEventListener('click', handleClick);
 
     return () => {
@@ -301,9 +452,10 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('wheel', handleWheel);
       canvas.removeEventListener('click', handleClick);
     };
-  }, [resizeCanvas, handleTouchStart, handleTouchMove, handleTouchEnd, handleMouseDown, handleMouseMove, handleMouseUp, handleClick]);
+  }, [resizeCanvas, handleTouchStart, handleTouchMove, handleTouchEnd, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, handleClick]);
 
   // Render when pathHistory or userPosition changes
   useEffect(() => {

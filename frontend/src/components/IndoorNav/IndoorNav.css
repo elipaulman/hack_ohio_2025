@@ -451,11 +451,23 @@
 
   .canvas-container {
     flex: 1;
-    margin: 8px 0;
-    border-radius: 16px;
-    box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
     width: 100%;
-    min-height: clamp(320px, 65vh, 720px);
+    min-height: calc(100vh - 280px);
+    height: 100%;
+  }
+
+  .canvas-container > div {
+    width: 100%;
+    height: 100%;
+    min-height: calc(100vh - 280px);
+  }
+
+  .canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
   }
 
   .stats-panel {
