@@ -126,11 +126,29 @@ class SensorManager {
     }
 
     handleOrientation(event) {
-        if (event.alpha !== null) {
-            const rawHeading = event.alpha;
+        let rawHeading = null;
 
+        // iOS Safari provides webkitCompassHeading (0 = North, 90 = East, etc.)
+        if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+            // webkitCompassHeading is the actual magnetic compass heading
+            // It's already in the correct format (0-360, 0 = North)
+            rawHeading = event.webkitCompassHeading;
+        }
+        // Fallback to alpha for non-iOS devices
+        else if (event.alpha !== null) {
+            // Alpha is device rotation, not compass heading
+            // This is less accurate but works on some Android devices
+            rawHeading = event.alpha;
+        }
+
+        if (rawHeading !== null) {
             // Apply circular averaging for compass
             this.compassHeading = this.applyCircularFilter(rawHeading, this.compassFilter);
+
+            // Initialize gyro heading to match compass on first reading
+            if (this.gyroHeading === 0 && this.compassFilter.length === 1) {
+                this.gyroHeading = this.compassHeading;
+            }
 
             // Fuse compass with gyro for better short-term accuracy
             this.fusedHeading = this.fuseHeadings(this.compassHeading, this.gyroHeading);
@@ -162,7 +180,22 @@ class SensorManager {
     fuseHeadings(compassHeading, gyroHeading) {
         // Complementary filter: gyro for short-term, compass for long-term
         // This reduces compass jitter while preventing gyro drift
-        const fusedHeading = this.gyroWeight * gyroHeading + (1 - this.gyroWeight) * compassHeading;
+
+        // Convert angles to unit vectors for proper circular averaging
+        const compassRad = compassHeading * Math.PI / 180;
+        const gyroRad = gyroHeading * Math.PI / 180;
+
+        const compassX = Math.cos(compassRad);
+        const compassY = Math.sin(compassRad);
+        const gyroX = Math.cos(gyroRad);
+        const gyroY = Math.sin(gyroRad);
+
+        // Weighted average of unit vectors
+        const fusedX = this.gyroWeight * gyroX + (1 - this.gyroWeight) * compassX;
+        const fusedY = this.gyroWeight * gyroY + (1 - this.gyroWeight) * compassY;
+
+        // Convert back to angle
+        const fusedHeading = Math.atan2(fusedY, fusedX) * 180 / Math.PI;
         return (fusedHeading + 360) % 360;
     }
 
