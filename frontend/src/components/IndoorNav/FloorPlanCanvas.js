@@ -174,12 +174,11 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
   // Convert canvas to screen coordinates
   const canvasToScreen = useCallback((canvasX, canvasY) => {
-    const state = stateRef.current;
-    const screenX = canvasX * state.scale + state.offsetX;
-    const screenY = canvasY * state.scale + state.offsetY;
+    const screenX = canvasX * transform.scale + transform.offsetX;
+    const screenY = canvasY * transform.scale + transform.offsetY;
 
     return { x: screenX, y: screenY };
-  }, []);
+  }, [transform]);
 
   // Touch handlers
   const getTouchDistance = (touches) => {
