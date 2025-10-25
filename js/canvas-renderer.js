@@ -308,11 +308,10 @@ class CanvasRenderer {
         userDot.classList.add('visible');
 
         // Update direction arrow rotation
-        // Convert compass heading (0° = North/up) to CSS rotation (0° = East/right)
-        // CSS rotation needs to be 90° less than compass heading
+        // Arrow is now centered, so rotation is straightforward
+        // CSS border-bottom arrow points up by default, matching 0° heading
         if (directionArrow) {
-            const cssRotation = heading - 90;
-            directionArrow.style.transform = `translateX(-50%) rotate(${cssRotation}deg)`;
+            directionArrow.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
         }
     }
 
