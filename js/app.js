@@ -186,14 +186,14 @@ class IndoorNavigatorApp {
     handleOrientationData(data) {
         if (!this.isTracking) return;
 
-        // Update heading in position tracker
-        this.positionTracker.setHeading(data.heading);
+        // Update heading in position tracker (use compass heading for accuracy)
+        this.positionTracker.setHeading(data.compassHeading);
 
         // Update debug display
         this.updateDebugDisplay('compass', data.compassHeading);
 
-        // Update heading display
-        this.elements.headingValue.textContent = Math.round(data.heading) + '°';
+        // Update heading display (should match debug compass)
+        this.elements.headingValue.textContent = Math.round(data.compassHeading) + '°';
 
         // Update user dot direction
         if (this.positionTracker.isPositionSet) {
