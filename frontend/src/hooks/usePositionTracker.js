@@ -10,7 +10,7 @@ export const usePositionTracker = () => {
   const [isPositionSet, setIsPositionSet] = useState(false);
 
   // Refs for configuration values
-  const stepLengthMetersRef = useRef(0.5);
+  const stepLengthMetersRef = useRef(0.35);
   const pixelsPerMeterRef = useRef(20);
   const stepsSinceCalibrationRef = useRef(0);
   const recalibrationThresholdRef = useRef(50);
