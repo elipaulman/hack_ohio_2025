@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
 import AboutPage from './components/AboutPage';
 import IndoorNavPage from './components/IndoorNav/IndoorNavPage';
+import OutdoorMapPage from './components/OutdoorMapPage';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
       {currentPage === 'home' && <HomePage />}
       {currentPage === 'about' && <AboutPage />}
       {currentPage === 'indoor-nav' && <IndoorNavPage onNavigate={handleNavigate} />}
+      {currentPage === 'outdoor-map' && <OutdoorMapPage />}
     </div>
   );
 }
