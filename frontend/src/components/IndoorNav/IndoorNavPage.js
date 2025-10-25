@@ -102,7 +102,10 @@ const IndoorNavPage = ({ onNavigate }) => {
   const stopTracking = () => {
     sensorManager.stop();
     setIsTracking(false);
-    setStatusText('Tracking stopped');
+    positionTracker.resetTracking();
+    positionTracker.clearPosition();
+    setIsCalibrationMode(true);
+    setStatusText('Tap the map to set your starting position');
     setShowStepCalibration(false);
   };
 
@@ -162,12 +165,6 @@ const IndoorNavPage = ({ onNavigate }) => {
         <div className="status-text" aria-live="polite">
           {statusText}
         </div>
-        <div className={`accuracy-indicator confidence-${positionTracker.confidenceLevel}`}>
-          <span className="confidence-label">Confidence</span>
-          <span className="confidence-value">
-            {positionTracker.confidenceLevel.toUpperCase()}
-          </span>
-        </div>
       </div>
 
       {/* Floor Plan Canvas */}
@@ -179,22 +176,6 @@ const IndoorNavPage = ({ onNavigate }) => {
           pathHistory={positionTracker.pathHistory}
           onCanvasClick={setPosition}
         />
-      </div>
-
-      {/* Stats Panel */}
-      <div className="stats-panel">
-        <div className="stat">
-          <span className="stat-label">Steps:</span>
-          <span className="stat-value">{stepDetector.stepCount}</span>
-        </div>
-        <div className="stat">
-          <span className="stat-label">Heading:</span>
-          <span className="stat-value">{Math.round(displayHeading)}°</span>
-        </div>
-        <div className="stat">
-          <span className="stat-label">Confidence:</span>
-          <span className="stat-value">{positionTracker.confidenceLevel}</span>
-        </div>
       </div>
 
       {/* Calibration Panel */}
@@ -256,7 +237,17 @@ const IndoorNavPage = ({ onNavigate }) => {
       {/* Debug Panel */}
       {showDebug && (
         <div className="debug-panel">
-          <h3>Debug Info</h3>
+          <div className="debug-panel-header">
+            <h3>Debug Info</h3>
+            <button
+              type="button"
+              className="debug-close"
+              onClick={() => setShowDebug(false)}
+              aria-label="Close debug panel"
+            >
+              ×
+            </button>
+          </div>
           <div className="debug-grid">
             <div>
               <strong>Acceleration:</strong>
@@ -284,6 +275,18 @@ const IndoorNavPage = ({ onNavigate }) => {
             <div>
               <strong>Stationary:</strong>
               <div>{stepDetector.isStationary ? 'Yes' : 'No'}</div>
+            </div>
+            <div>
+              <strong>Steps:</strong>
+              <div>{stepDetector.stepCount}</div>
+            </div>
+            <div>
+              <strong>Heading:</strong>
+              <div>{Math.round(displayHeading)}°</div>
+            </div>
+            <div>
+              <strong>Confidence:</strong>
+              <div>{positionTracker.confidenceLevel.toUpperCase()}</div>
             </div>
           </div>
         </div>

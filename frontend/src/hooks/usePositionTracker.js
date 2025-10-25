@@ -121,6 +121,12 @@ export const usePositionTracker = () => {
     setPathHistory([]);
   }, []);
 
+  const clearPosition = useCallback(() => {
+    setIsPositionSet(false);
+    setPosition({ x: 0, y: 0 });
+    setPathHistory([]);
+  }, []);
+
   // Set step length
   const setStepLength = useCallback((lengthInMeters) => {
     stepLengthMetersRef.current = lengthInMeters;
@@ -171,6 +177,7 @@ export const usePositionTracker = () => {
     calibrateStepLength,
     setUserHeight,
     shouldRecalibrate,
-    getStepsSinceCalibration
+    getStepsSinceCalibration,
+    clearPosition
   };
 };
