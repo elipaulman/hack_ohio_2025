@@ -7,8 +7,8 @@ class IndoorNavigatorApp {
         this.canvasRenderer = new CanvasRenderer('floor-plan-canvas', 'assets/scott-lab-basement.png');
 
         // Building orientation offset
-        // The floor plan is aligned with the screen, but the building is rotated 60° in real life
-        // Add this offset to compass readings to align with the floor plan
+        // The floor plan's "north" (up on screen) corresponds to 60° on the compass
+        // Subtract this offset from compass readings to align with the floor plan
         this.buildingRotationOffset = 60;
 
         // App state
@@ -192,7 +192,8 @@ class IndoorNavigatorApp {
         if (!this.isTracking) return;
 
         // Apply building rotation offset to align compass with floor plan
-        const adjustedHeading = (data.compassHeading + this.buildingRotationOffset) % 360;
+        // When facing 60° in real life, that should be 0° (north/up) on the floor plan
+        const adjustedHeading = (data.compassHeading - this.buildingRotationOffset + 360) % 360;
 
         // Update heading in position tracker (use compass heading for accuracy)
         this.positionTracker.setHeading(adjustedHeading);
