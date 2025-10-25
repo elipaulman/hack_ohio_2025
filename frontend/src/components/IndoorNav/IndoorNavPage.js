@@ -19,8 +19,16 @@ const IndoorNavPage = ({ onNavigate }) => {
   const [loadingText, setLoadingText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [showDebug, setShowDebug] = useState(false);
+  const [displayHeading, setDisplayHeading] = useState(0);
 
   const buildingRotationOffset = 1;
+  const applyBuildingOffset = useCallback((headingValue) => {
+    if (headingValue === null || headingValue === undefined || Number.isNaN(headingValue)) {
+      return 0;
+    }
+    const normalized = (headingValue - buildingRotationOffset) % 360;
+    return (normalized + 360) % 360;
+  }, [buildingRotationOffset]);
 
   // Handle motion data
   const handleMotionData = useCallback((data) => {
@@ -29,9 +37,14 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   // Handle orientation data
   const handleOrientationData = useCallback((data) => {
-    const adjustedHeading = (data.heading - buildingRotationOffset + 360) % 360;
-    positionTracker.updateHeading(adjustedHeading);
-  }, [positionTracker]);
+    const fusedAdjustedHeading = applyBuildingOffset(data.heading);
+    const compassAdjustedHeading = applyBuildingOffset(
+      data.compassHeading !== undefined ? data.compassHeading : data.heading
+    );
+
+    positionTracker.updateHeading(fusedAdjustedHeading);
+    setDisplayHeading(compassAdjustedHeading);
+  }, [applyBuildingOffset, positionTracker]);
 
   // Handle step detection
   const handleStep = useCallback(() => {
@@ -177,7 +190,7 @@ const IndoorNavPage = ({ onNavigate }) => {
         </div>
         <div className="stat">
           <span className="stat-label">Heading:</span>
-          <span className="stat-value">{Math.round(positionTracker.heading)}°</span>
+          <span className="stat-value">{Math.round(displayHeading)}°</span>
         </div>
         <div className="stat">
           <span className="stat-label">Confidence:</span>
@@ -258,7 +271,7 @@ const IndoorNavPage = ({ onNavigate }) => {
             </div>
             <div>
               <strong>Compass:</strong>
-              <div>{Math.round(sensorManager.compassHeading)}°</div>
+              <div>{Math.round(displayHeading)}°</div>
             </div>
             <div>
               <strong>Position:</strong>

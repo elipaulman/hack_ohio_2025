@@ -1,10 +1,11 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 
 const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, onCanvasClick }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const imageRef = useRef(new Image());
   const [imageLoaded, setImageLoaded] = useState(false);
+  const TRAIL_POINT_LIMIT = 60;
 
   // Pan and zoom state
   const stateRef = useRef({
@@ -130,6 +131,42 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
     return { x: screenX, y: screenY };
   }, []);
+
+  const trailDots = useMemo(() => {
+    if (!pathHistory || pathHistory.length < 2) return [];
+
+    const cappedHistory = pathHistory.slice(
+      Math.max(pathHistory.length - TRAIL_POINT_LIMIT - 1, 0),
+      pathHistory.length - 1
+    );
+
+    if (!cappedHistory.length) return [];
+
+    const total = cappedHistory.length;
+    const dots = cappedHistory.map((point, idx) => {
+      const coords = canvasToScreen(point.x, point.y);
+
+      if (!Number.isFinite(coords.x) || !Number.isFinite(coords.y)) {
+        return null;
+      }
+
+      const progress = (idx + 1) / total;
+      const size = 6 + progress * 10;
+      const opacity = 0.18 + progress * 0.55;
+
+      return {
+        left: `${coords.x}px`,
+        top: `${coords.y}px`,
+        width: `${size}px`,
+        height: `${size}px`,
+        opacity,
+        transform: 'translate(-50%, -50%)',
+        zIndex: 8 + Math.floor(progress * 2)
+      };
+    });
+
+    return dots.filter(Boolean);
+  }, [pathHistory, canvasToScreen]);
 
   // Touch handlers
   const getTouchDistance = (touches) => {
@@ -317,6 +354,13 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none' }} />
+      {trailDots.map((style, index) => (
+        <div
+          key={`trail-${index}`}
+          className="trail-dot"
+          style={style}
+        />
+      ))}
       {userPosition && (
         <div
           style={{
