@@ -28,15 +28,17 @@ body {
     color: var(--text-primary);
     overflow: hidden;
     height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height for better mobile support */
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
-    touch-action: none;
+    touch-action: pan-y; /* Allow vertical panning/scrolling */
 }
 
 #app {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height for better mobile support */
 }
 
 /* Header - Compact & Clean */
@@ -81,7 +83,7 @@ header h1 {
     position: relative;
     overflow: hidden;
     background: #D0D0D0;
-    touch-action: none;
+    touch-action: none; /* Prevent scrolling, allow custom pan/zoom */
     min-height: 0; /* Important for flex children */
 }
 
@@ -145,19 +147,25 @@ header h1 {
     background: var(--surface-color);
     box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
     z-index: 50;
-    max-height: 50vh; /* Reduced to ensure visibility above Safari bar */
+    max-height: 55vh; /* Slightly increased for better usability */
     overflow-y: auto;
+    overflow-y: overlay; /* Use overlay scrolling on supported browsers */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    overscroll-behavior: contain; /* Prevent scroll chaining to body */
     flex-shrink: 0;
     flex-grow: 0;
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
     position: relative;
+    touch-action: pan-y; /* Allow vertical scrolling */
     /* Ensure panel stays above fold on iOS */
     margin-bottom: 0;
 }
 
 .panel {
-    padding: 20px 20px 20px 20px; /* Top Right Bottom Left - bottom will be overridden below for Safari */
+    padding: 20px 20px 100px 20px; /* Extra bottom padding for Safari nav bar */
+    /* Use max() to ensure enough space for Safari's bottom nav bar */
+    padding-bottom: max(100px, env(safe-area-inset-bottom, 20px) + 80px);
 }
 
 .instruction {
@@ -452,23 +460,21 @@ header h1 {
 }
 
 /* Bottom Safe Area - Account for Safari Address Bar */
-.panel {
-    padding-bottom: 20px;
-    /* Extra padding for Safari address bar on iOS */
-    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
-}
+/* Bottom padding is now handled in the main .panel rule above */
 
 /* Add extra bottom padding when not in standalone mode (Safari browser) */
 @media (display-mode: browser) {
     .panel {
-        padding-bottom: 80px; /* Account for Safari address bar */
+        /* Safari's bottom nav bar is ~44px, plus tap targets need 44px minimum */
+        padding-bottom: max(120px, env(safe-area-inset-bottom, 20px) + 100px);
     }
 }
 
 /* When in standalone mode (added to home screen), use safe areas */
 @media (display-mode: standalone) {
     .panel {
-        padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom, 0px)));
+        /* Less padding needed in standalone mode, just safe area */
+        padding-bottom: max(40px, calc(40px + env(safe-area-inset-bottom, 0px)));
     }
 }
 
@@ -528,15 +534,18 @@ header h1 {
 }
 
 /* Prevent overscroll bounce on iOS */
-html, body {
+html {
     position: fixed;
     width: 100%;
     height: 100%;
+    overflow: hidden;
 }
 
-/* Smooth scrolling for control panel */
-#control-panel {
-    -webkit-overflow-scrolling: touch;
+body {
+    position: relative; /* Changed from fixed to allow internal scrolling */
+    width: 100%;
+    height: 100%;
+    overscroll-behavior: none; /* Prevent pull-to-refresh and overscroll */
 }
 
 /* Better tap feedback */

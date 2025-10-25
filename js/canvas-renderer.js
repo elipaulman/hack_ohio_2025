@@ -179,6 +179,11 @@ class CanvasRenderer {
     }
 
     handleTouchStart(e) {
+        // Only handle touch events that originate on the canvas itself
+        if (e.target !== this.canvas) {
+            return;
+        }
+
         if (e.touches.length === 1) {
             // Single touch - pan
             this.isPanning = true;
@@ -193,7 +198,9 @@ class CanvasRenderer {
     }
 
     handleTouchMove(e) {
+        // Only handle if we're in a panning/zooming state (started on canvas)
         if (e.touches.length === 1 && this.isPanning) {
+            e.preventDefault(); // Prevent scrolling while panning the map
             const dx = e.touches[0].clientX - this.lastTouchX;
             const dy = e.touches[0].clientY - this.lastTouchY;
 
@@ -204,7 +211,7 @@ class CanvasRenderer {
             this.lastTouchY = e.touches[0].clientY;
 
             this.render();
-        } else if (e.touches.length === 2) {
+        } else if (e.touches.length === 2 && this.touchStartDistance > 0) {
             e.preventDefault();
             const distance = this.getTouchDistance(e.touches);
             const scaleChange = distance / this.touchStartDistance;
@@ -217,10 +224,18 @@ class CanvasRenderer {
     handleTouchEnd(e) {
         if (e.touches.length === 0) {
             this.isPanning = false;
+            this.touchStartDistance = 0; // Reset zoom state
+        } else if (e.touches.length === 1) {
+            // Went from 2 fingers to 1, reset zoom but keep panning
+            this.touchStartDistance = 0;
         }
     }
 
     handleMouseDown(e) {
+        // Only handle mouse events that originate on the canvas itself
+        if (e.target !== this.canvas) {
+            return;
+        }
         this.isPanning = true;
         this.lastTouchX = e.clientX;
         this.lastTouchY = e.clientY;
@@ -246,6 +261,11 @@ class CanvasRenderer {
     }
 
     handleClick(e) {
+        // Only handle clicks on the canvas itself
+        if (e.target !== this.canvas) {
+            return;
+        }
+
         // Don't trigger click if user was panning
         if (this.isPanning) return;
 

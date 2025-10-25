@@ -22,6 +22,10 @@ class SensorManager {
         this.lastTimestamp = null;
         this.fusedHeading = 0;
         this.gyroWeight = 0.98; // Complementary filter weight
+
+        // Screen orientation tracking
+        this.screenOrientationAngle = 0;
+        this.updateScreenOrientation();
     }
 
     async requestPermission() {
@@ -69,8 +73,20 @@ class SensorManager {
         // Start listening to device motion
         window.addEventListener('devicemotion', this.handleMotion.bind(this));
 
-        // Start listening to device orientation
-        window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
+        // Start listening to device orientation with absolute flag
+        // This ensures we get compass-based orientation, not device-relative
+        window.addEventListener('deviceorientation', this.handleOrientation.bind(this), true);
+
+        // Also try the absolute orientation event (for devices that support it)
+        window.addEventListener('deviceorientationabsolute', this.handleOrientation.bind(this));
+
+        // Listen for screen orientation changes
+        if (screen.orientation) {
+            screen.orientation.addEventListener('change', this.handleScreenOrientationChange.bind(this));
+        } else {
+            // Fallback for older browsers
+            window.addEventListener('orientationchange', this.handleScreenOrientationChange.bind(this));
+        }
 
         this.isActive = true;
         this.lastTimestamp = Date.now();
@@ -80,7 +96,35 @@ class SensorManager {
     stop() {
         window.removeEventListener('devicemotion', this.handleMotion.bind(this));
         window.removeEventListener('deviceorientation', this.handleOrientation.bind(this));
+        window.removeEventListener('deviceorientationabsolute', this.handleOrientation.bind(this));
+
+        if (screen.orientation) {
+            screen.orientation.removeEventListener('change', this.handleScreenOrientationChange.bind(this));
+        } else {
+            window.removeEventListener('orientationchange', this.handleScreenOrientationChange.bind(this));
+        }
+
         this.isActive = false;
+    }
+
+    updateScreenOrientation() {
+        // Get the current screen orientation angle
+        if (screen.orientation) {
+            // Modern API: returns 0, 90, 180, or 270
+            this.screenOrientationAngle = screen.orientation.angle || 0;
+        } else if (window.orientation !== undefined) {
+            // Fallback for older iOS: returns -90, 0, 90, or 180
+            this.screenOrientationAngle = window.orientation || 0;
+        } else {
+            this.screenOrientationAngle = 0;
+        }
+        console.log('Screen orientation angle:', this.screenOrientationAngle);
+    }
+
+    handleScreenOrientationChange() {
+        this.updateScreenOrientation();
+        // Force an immediate heading update
+        console.log('Screen orientation changed to:', this.screenOrientationAngle);
     }
 
     handleMotion(event) {
@@ -127,23 +171,52 @@ class SensorManager {
 
     handleOrientation(event) {
         let rawHeading = null;
+        let isAbsoluteOrientation = false;
+
+        // Check if this is an absolute orientation event
+        if (event.absolute === true || event.type === 'deviceorientationabsolute') {
+            isAbsoluteOrientation = true;
+        }
 
         // iOS Safari provides webkitCompassHeading (0 = North, 90 = East, etc.)
         if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
             // webkitCompassHeading is the actual magnetic compass heading
             // It's already in the correct format (0-360, 0 = North)
+            // This is relative to the device's natural orientation, so we need to adjust for screen rotation
             rawHeading = event.webkitCompassHeading;
+            isAbsoluteOrientation = true;
         }
         // Fallback to alpha for non-iOS devices
         else if (event.alpha !== null) {
-            // Alpha is device rotation, not compass heading
-            // This is less accurate but works on some Android devices
+            // On Android with absolute orientation, alpha is compass heading
+            // Otherwise it's just device rotation
             rawHeading = event.alpha;
         }
 
         if (rawHeading !== null) {
+            // Adjust heading for screen orientation
+            // When the device is rotated, the compass needs to be adjusted
+            let adjustedHeading = rawHeading;
+
+            if (isAbsoluteOrientation) {
+                // For iOS/Safari: webkitCompassHeading is already absolute
+                // But we need to adjust for how the screen is oriented
+                // Portrait: 0, Landscape-right: 90, Upside-down: 180, Landscape-left: -90/270
+                if (this.screenOrientationAngle === -90 || this.screenOrientationAngle === 270) {
+                    // Landscape-left: device top is pointing left
+                    adjustedHeading = (rawHeading - 90 + 360) % 360;
+                } else if (this.screenOrientationAngle === 90) {
+                    // Landscape-right: device top is pointing right
+                    adjustedHeading = (rawHeading + 90) % 360;
+                } else if (this.screenOrientationAngle === 180) {
+                    // Upside-down
+                    adjustedHeading = (rawHeading + 180) % 360;
+                }
+                // Portrait (0): no adjustment needed
+            }
+
             // Apply circular averaging for compass
-            this.compassHeading = this.applyCircularFilter(rawHeading, this.compassFilter);
+            this.compassHeading = this.applyCircularFilter(adjustedHeading, this.compassFilter);
 
             // Initialize gyro heading to match compass on first reading
             if (this.gyroHeading === 0 && this.compassFilter.length === 1) {
