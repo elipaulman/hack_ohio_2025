@@ -10,7 +10,7 @@ export const usePositionTracker = () => {
   const [isPositionSet, setIsPositionSet] = useState(false);
 
   // Refs for configuration values
-  const stepLengthMetersRef = useRef(0.35);
+  const stepLengthMetersRef = useRef(0.425);
   const pixelsPerMeterRef = useRef(20);
   const stepsSinceCalibrationRef = useRef(0);
   const recalibrationThresholdRef = useRef(50);
@@ -33,7 +33,14 @@ export const usePositionTracker = () => {
   // Add to path history
   const addToPathHistory = useCallback((x, y) => {
     setPathHistory(prev => {
-      const newHistory = [...prev, { x, y }];
+      const newHistory = [
+        ...prev,
+        {
+          x,
+          y,
+          timestamp: Date.now()
+        }
+      ];
       if (newHistory.length > maxPathLengthRef.current) {
         newHistory.shift();
       }
@@ -49,7 +56,11 @@ export const usePositionTracker = () => {
     stepsSinceCalibrationRef.current = 0;
     setDriftEstimate(0);
     setConfidenceLevel('high');
-    setPathHistory([{ x, y }]);
+    setPathHistory([{
+      x,
+      y,
+      timestamp: Date.now()
+    }]);
   }, []);
 
   // Update heading
