@@ -82,6 +82,7 @@ header h1 {
     overflow: hidden;
     background: #D0D0D0;
     touch-action: none;
+    min-height: 0; /* Important for flex children */
 }
 
 #floor-plan-canvas {
@@ -144,15 +145,19 @@ header h1 {
     background: var(--surface-color);
     box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
     z-index: 50;
-    max-height: 55vh;
+    max-height: 50vh; /* Reduced to ensure visibility above Safari bar */
     overflow-y: auto;
     flex-shrink: 0;
+    flex-grow: 0;
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
+    position: relative;
+    /* Ensure panel stays above fold on iOS */
+    margin-bottom: 0;
 }
 
 .panel {
-    padding: 20px;
+    padding: 20px 20px 20px 20px; /* Top Right Bottom Left - bottom will be overridden below for Safari */
 }
 
 .instruction {
@@ -446,10 +451,24 @@ header h1 {
     }
 }
 
-/* Bottom Safe Area */
-@supports (padding: env(safe-area-inset-bottom)) {
+/* Bottom Safe Area - Account for Safari Address Bar */
+.panel {
+    padding-bottom: 20px;
+    /* Extra padding for Safari address bar on iOS */
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+}
+
+/* Add extra bottom padding when not in standalone mode (Safari browser) */
+@media (display-mode: browser) {
     .panel {
-        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        padding-bottom: 80px; /* Account for Safari address bar */
+    }
+}
+
+/* When in standalone mode (added to home screen), use safe areas */
+@media (display-mode: standalone) {
+    .panel {
+        padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom, 0px)));
     }
 }
 
