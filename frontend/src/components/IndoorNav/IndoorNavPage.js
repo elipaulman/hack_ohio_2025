@@ -5,6 +5,9 @@ import { usePositionTracker } from '../../hooks/usePositionTracker';
 import FloorPlanCanvas from './FloorPlanCanvas';
 import './IndoorNav.css';
 
+// DEVELOPER MODE: Set to true to show debug controls and subheader
+const DEV_MODE = false;
+
 const IndoorNavPage = ({ onNavigate }) => {
   const sensorManager = useSensorManager();
   const stepDetector = useStepDetector();
@@ -157,15 +160,17 @@ const IndoorNavPage = ({ onNavigate }) => {
   return (
     <div className="indoor-nav-container">
       {/* Sub-Header for Indoor Nav */}
-      <div className="indoor-nav-subheader">
-        <h2>Indoor Navigator</h2>
-        <button
-          className="debug-toggle"
-          onClick={() => setShowDebug(!showDebug)}
-        >
-          {showDebug ? 'Hide Debug' : 'Debug Info'}
-        </button>
-      </div>
+      {DEV_MODE && (
+        <div className="indoor-nav-subheader">
+          <h2>Indoor Navigator</h2>
+          <button
+            className="debug-toggle"
+            onClick={() => setShowDebug(!showDebug)}
+          >
+            {showDebug ? 'Hide Debug' : 'Debug Info'}
+          </button>
+        </div>
+      )}
 
       {/* Status Bar */}
       <div className="status-bar">
@@ -261,7 +266,7 @@ const IndoorNavPage = ({ onNavigate }) => {
       )}
 
       {/* Debug Panel */}
-      {showDebug && (
+      {showDebug && DEV_MODE && (
         <div className="debug-panel">
           <div className="debug-panel-header">
             <h3>Debug Info</h3>
