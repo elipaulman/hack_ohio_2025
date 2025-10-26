@@ -12,8 +12,7 @@ import {
   Footprints,
   Lock,
   Smartphone,
-  ArrowRight,
-  Check
+  ArrowRight
 } from 'lucide-react';
 
 const OSU_SCARLET = '#BB0000';
@@ -231,8 +230,8 @@ function HomePage({ onNavigate }) {
                         Use indoor navigation with real-time positioning to locate your exact room
                       </p>
                     </div>
-                    <div className="hidden md:block" style={{ color: '#22C55E' }}>
-                      <Check size={40} strokeWidth={3} />
+                    <div className="hidden md:block opacity-20">
+                      <ArrowRight size={40} />
                     </div>
                   </div>
                 </button>
