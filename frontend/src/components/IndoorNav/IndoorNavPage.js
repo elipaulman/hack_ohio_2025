@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSensorManager } from '../../hooks/useSensorManager';
 import { useStepDetector } from '../../hooks/useStepDetector';
 import { usePositionTracker } from '../../hooks/usePositionTracker';
+import { usePathFollowing } from '../../hooks/usePathFollowing';
 import FloorPlanCanvasWithPath from './FloorPlanCanvasWithPath';
 import './IndoorNav.css';
 
@@ -72,6 +73,7 @@ const IndoorNavPage = ({ onNavigate }) => {
   const floorPlanRef = useRef(null);
 
   const [isTracking, setIsTracking] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [showStepCalibration, setShowStepCalibration] = useState(false);
   const [statusText, setStatusText] = useState('Select floor, starting location, and destination');
   const [showLoading, setShowLoading] = useState(false);
@@ -85,6 +87,15 @@ const IndoorNavPage = ({ onNavigate }) => {
   const [availableLocations, setAvailableLocations] = useState([]);
   const [pathData, setPathData] = useState(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+
+  // Path following hook for navigation
+  const pathFollowing = usePathFollowing(pathData);
+
+  // Debug: Log path following state
+  useEffect(() => {
+    console.log('[IndoorNavPage] pathFollowing.currentPosition:', pathFollowing.currentPosition);
+    console.log('[IndoorNavPage] pathData:', pathData);
+  }, [pathFollowing.currentPosition, pathData]);
 
   // Load locations from CSV when floor changes
   useEffect(() => {
@@ -135,10 +146,10 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   // Handle step detection
   const handleStep = useCallback(() => {
-    if (isTracking) {
-      positionTracker.onStep();
+    if (isNavigating) {
+      pathFollowing.onStep();
     }
-  }, [isTracking, positionTracker]);
+  }, [isNavigating, pathFollowing]);
 
   // Set up sensor callbacks
   useEffect(() => {
@@ -194,6 +205,58 @@ const IndoorNavPage = ({ onNavigate }) => {
     positionTracker.clearPosition();
     setStatusText('Tracking stopped');
     setShowStepCalibration(false);
+  };
+
+  // Start navigation (starts sensors and path following)
+  const handleStartNavigation = async () => {
+    if (!pathData) {
+      setErrorMessage('Please select a starting location and destination first');
+      return;
+    }
+
+    setShowLoading(true);
+    setLoadingText('Requesting sensor permissions...');
+
+    const permissionResult = await sensorManager.requestPermission();
+
+    if (!permissionResult.success) {
+      setShowLoading(false);
+      setErrorMessage(permissionResult.error);
+      return;
+    }
+
+    setLoadingText('Starting sensors...');
+
+    const started = sensorManager.start(permissionResult.hasPermission ?? true);
+
+    if (!started) {
+      setShowLoading(false);
+      setErrorMessage('Failed to start sensors');
+      return;
+    }
+
+    // Start path following
+    const navigationStarted = pathFollowing.startNavigation();
+
+    if (!navigationStarted) {
+      setShowLoading(false);
+      setErrorMessage('Failed to start navigation - no path available');
+      return;
+    }
+
+    setShowLoading(false);
+    setIsTracking(true);
+    setIsNavigating(true);
+    setStatusText('Navigating...');
+  };
+
+  // Stop navigation
+  const handleStopNavigation = () => {
+    sensorManager.stop();
+    pathFollowing.stopNavigation();
+    setIsTracking(false);
+    setIsNavigating(false);
+    setStatusText(`Navigation stopped - Path: ${selectedStart} to ${selectedDestination}`);
   };
 
   // Set position (for step tracking, not for pathfinding start point)
@@ -295,6 +358,16 @@ const IndoorNavPage = ({ onNavigate }) => {
     }
   }, [selectedStart, selectedDestination, selectedFloor, handleFindPath]);
 
+  // Update status text when destination is reached
+  useEffect(() => {
+    if (isNavigating && pathFollowing.isDestinationReached()) {
+      setStatusText('Destination reached! 🎉');
+    } else if (isNavigating) {
+      const percent = pathFollowing.getProgressPercent().toFixed(0);
+      setStatusText(`Navigating... ${percent}% complete`);
+    }
+  }, [isNavigating, pathFollowing]);
+
   return (
     <div className="indoor-nav-container">
       {/* Sub-Header for Indoor Nav */}
@@ -332,7 +405,7 @@ const IndoorNavPage = ({ onNavigate }) => {
           ref={floorPlanRef}
           floorPlanPath={FLOOR_CONFIG[selectedFloor].imagePath}
           pathData={pathData}
-          userPosition={positionTracker.isPositionSet ? positionTracker.position : null}
+          userPosition={pathFollowing.currentPosition}
           heading={displayHeading}
           onCanvasClick={setPosition}
         />
@@ -456,6 +529,33 @@ const IndoorNavPage = ({ onNavigate }) => {
             </div>
 
             <p className="auto-find-hint">💡 Path will calculate automatically when both locations are selected</p>
+
+            {/* Start Navigation Button */}
+            {pathData && !isNavigating && (
+              <div className="form-group">
+                <button
+                  className="btn btn-primary btn-start-navigation"
+                  onClick={handleStartNavigation}
+                >
+                  Start Navigation
+                </button>
+              </div>
+            )}
+
+            {/* Stop Navigation Button */}
+            {isNavigating && (
+              <div className="form-group">
+                <button
+                  className="btn btn-stop"
+                  onClick={handleStopNavigation}
+                >
+                  Stop Navigation
+                </button>
+                <div className="navigation-progress">
+                  Progress: {pathFollowing.getProgressPercent().toFixed(0)}%
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 const FloorPlanCanvasWithPath = ({
   floorPlanPath,
@@ -21,12 +21,7 @@ const FloorPlanCanvasWithPath = ({
     img.src = floorPlanPath;
   }, [floorPlanPath]);
 
-  // Redraw when path data or user position changes
-  useEffect(() => {
-    drawCanvas();
-  }, [pathData, userPosition, heading]);
-
-  const drawCanvas = () => {
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !imageRef.current) return;
 
@@ -46,10 +41,19 @@ const FloorPlanCanvasWithPath = ({
     }
 
     // Draw user position
+    console.log('[FloorPlanCanvas] userPosition:', userPosition);
     if (userPosition) {
+      console.log('[FloorPlanCanvas] Drawing user at:', userPosition, 'heading:', heading);
       drawUserPosition(ctx, userPosition, heading);
+    } else {
+      console.log('[FloorPlanCanvas] No user position to draw');
     }
-  };
+  }, [pathData, userPosition, heading]);
+
+  // Redraw when path data or user position changes
+  useEffect(() => {
+    drawCanvas();
+  }, [drawCanvas]);
 
   const drawPath = (ctx, waypoints) => {
     if (waypoints.length < 2) return;
@@ -130,38 +134,51 @@ const FloorPlanCanvasWithPath = ({
   };
 
   const drawUserPosition = (ctx, position, heading) => {
+    const canvasHeight = ctx.canvas.height;
     const x = position.x;
-    const y = position.y;
+    const y = canvasHeight - position.y; // Flip Y coordinate to match path rendering
 
-    // Draw user circle
-    ctx.fillStyle = 'rgba(100, 200, 255, 0.8)';
+    // Draw a large triangle pointing in the heading direction
+    const triangleSize = 85; // Size of the triangle
+    const radians = (heading * Math.PI) / 180;
+
+    // Calculate the three points of the triangle
+    // Tip of the triangle (pointing in heading direction)
+    const tipX = x + triangleSize * Math.sin(radians);
+    const tipY = y - triangleSize * Math.cos(radians); // Negative because Y is flipped
+
+    // Base of the triangle (perpendicular to heading)
+    const baseWidth = triangleSize * 0.6;
+    const baseAngle1 = radians + Math.PI / 2;
+    const baseAngle2 = radians - Math.PI / 2;
+
+    const base1X = x + (baseWidth / 2) * Math.sin(baseAngle1);
+    const base1Y = y - (baseWidth / 2) * Math.cos(baseAngle1);
+    const base2X = x + (baseWidth / 2) * Math.sin(baseAngle2);
+    const base2Y = y - (baseWidth / 2) * Math.cos(baseAngle2);
+
+    // Draw filled triangle
+    ctx.fillStyle = 'rgba(33, 150, 243, 0.9)'; // Blue color
     ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(base1X, base1Y);
+    ctx.lineTo(base2X, base2Y);
+    ctx.closePath();
     ctx.fill();
 
-    // Draw direction indicator
-    const arrowLength = 15;
-    const radians = (heading * Math.PI) / 180;
-    const endX = x + arrowLength * Math.cos(radians);
-    const endY = y + arrowLength * Math.sin(radians);
-
-    ctx.strokeStyle = 'rgba(100, 200, 255, 1)';
-    ctx.lineWidth = 2;
+    // Draw white outline for better visibility
+    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(endX, endY);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(base1X, base1Y);
+    ctx.lineTo(base2X, base2Y);
+    ctx.closePath();
     ctx.stroke();
 
-    // Draw arrowhead
-    const headlen = 5;
-    const angle1 = radians - (Math.PI / 6);
-    const angle2 = radians + (Math.PI / 6);
-
-    ctx.beginPath();
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - headlen * Math.cos(angle1), endY - headlen * Math.sin(angle1));
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - headlen * Math.cos(angle2), endY - headlen * Math.sin(angle2));
+    // Add a darker inner stroke for definition
+    ctx.strokeStyle = 'rgba(25, 118, 210, 1)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
   };
 
