@@ -1,0 +1,242 @@
+{
+  "lastModified": "2025-10-26T02:46:25.351Z",
+  "status": "success",
+  "data": {
+    "itemHash": "951cebe1f5df80dfe8df8bf5fdca15c3",
+    "garages": [
+      {
+        "name": "12th Avenue",
+        "count": 246,
+        "capacity": 642,
+        "percentage": 39,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/12th-avenue-garage/",
+        "osuBuildingNumber": "387",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "9th Avenue East",
+        "count": 118,
+        "capacity": 991,
+        "percentage": 12,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/9th-avenue-garage-east/",
+        "osuBuildingNumber": "875",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "9th Avenue West",
+        "count": 333,
+        "capacity": 1057,
+        "percentage": 32,
+        "currentAccess": [
+          "keycard"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/9th-avenue-garage-west/",
+        "osuBuildingNumber": "359",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "SAFEAUTO",
+        "count": 95,
+        "capacity": 826,
+        "percentage": 12,
+        "currentAccess": [
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/safeauto-garage/",
+        "osuBuildingNumber": "170",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Medical Center",
+        "count": 166,
+        "capacity": 1616,
+        "percentage": 11,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/wexner-medical-center-garage/",
+        "osuBuildingNumber": "1028",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Old Cannon",
+        "count": 25,
+        "capacity": 1128,
+        "percentage": 3,
+        "currentAccess": [
+          "keycard"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/old-cannon-garage/",
+        "osuBuildingNumber": "1059",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Neil Avenue",
+        "count": 54,
+        "capacity": 978,
+        "percentage": 6,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/neil-avenue-garage/",
+        "osuBuildingNumber": "287",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "11th Avenue",
+        "count": 108,
+        "capacity": 646,
+        "percentage": 17,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/11th-avenue-garage/",
+        "osuBuildingNumber": "352",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Ohio Union North",
+        "count": 315,
+        "capacity": 604,
+        "percentage": 53,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/ohio-union-north-garage/",
+        "osuBuildingNumber": "288",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Ohio Union South",
+        "count": 184,
+        "capacity": 790,
+        "percentage": 24,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/ohio-union-south-garage/",
+        "osuBuildingNumber": "162",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Gateway",
+        "count": 356,
+        "capacity": 1176,
+        "percentage": 31,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/gateway-garage/",
+        "osuBuildingNumber": "866",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Tuttle",
+        "count": 215,
+        "capacity": 965,
+        "percentage": 23,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/tuttle-garage/",
+        "osuBuildingNumber": "088",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Northwest",
+        "count": 3,
+        "capacity": 568,
+        "percentage": 1,
+        "currentAccess": [
+          "keycard"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/northwest-garage/",
+        "osuBuildingNumber": "083",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Arps",
+        "count": 300,
+        "capacity": 892,
+        "percentage": 34,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/arps-garage/",
+        "osuBuildingNumber": "278",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "Lane Avenue",
+        "count": 443,
+        "capacity": 1296,
+        "percentage": 35,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/lane-avenue-garage/",
+        "osuBuildingNumber": "159",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "West Lane Avenue",
+        "count": 39,
+        "capacity": 280,
+        "percentage": 14,
+        "currentAccess": [
+          "keycard",
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/west-lane-avenue-garage/",
+        "osuBuildingNumber": "892",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      },
+      {
+        "name": "James Outpatient Care",
+        "count": 1,
+        "capacity": 629,
+        "percentage": 1,
+        "currentAccess": [
+          "visitor"
+        ],
+        "link": "https://osu.campusparc.com/find-parking/james-outpatient-care-garage/",
+        "osuBuildingNumber": "1051",
+        "closed": false,
+        "lastUpdated": "2025-10-26T02:44:00.000Z"
+      }
+    ]
+  }
+}

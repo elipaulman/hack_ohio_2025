@@ -5,6 +5,7 @@ import {
   InfoWindow,
   useJsApiLoader,
 } from "@react-google-maps/api";
+import localGarageData from "../data/garageData.json";
 
 const center = { lat: 40.0067, lng: -83.0305 }; // OSU campus center
 const DEFAULT_MAP_HEIGHT = "calc(100vh - 112px)";
@@ -32,9 +33,8 @@ const garageLocations = [
 
 // Helper: color and text based on % full
 function getMarkerColor(percentage) {
-  // normalize and guard against missing/invalid values
   const p = Number(percentage);
-  if (!Number.isFinite(p)) return '#9CA3AF'; // neutral gray for unknown
+  if (!Number.isFinite(p)) return "#9CA3AF"; // gray for unknown
   if (p <= 60) return "#10B981"; // green
   if (p <= 85) return "#F59E0B"; // amber
   return "#EF4444"; // red
@@ -74,32 +74,36 @@ export default function GaragesPage() {
     [mapHeight]
   );
 
-  // Fetch API data
+  // Fetch API data with static fallback
   useEffect(() => {
     const fetchGarageData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        // Use proxy in development to avoid CORS issues (setupProxy maps /v2 -> https://content.osu.edu)
-        const apiUrl = (process.env.NODE_ENV === 'development')
-          ? '/v2/parking/garages/availability'
-          : 'https://content.osu.edu/v2/parking/garages/availability';
-        console.debug('[GaragesPage] Fetching garage data from', apiUrl);
-        const response = await fetch(apiUrl, { headers: { Accept: 'application/json' } });
-        console.debug('[GaragesPage] response', response.status, response.statusText, 'content-type:', response.headers.get('content-type'));
-        if (!response.ok) {
-          const body = await response.text().catch(() => '<unreadable>');
-          console.error('[GaragesPage] Non-OK response from garage API', response.status, body);
-          throw new Error(`Failed to fetch garage data: ${response.status}`);
-        }
+        const apiUrl =
+          process.env.NODE_ENV === "development"
+            ? "/v2/parking/garages/availability"
+            : null; // in production, skip fetch entirely
 
-        // Try to parse JSON, but provide verbose logging if parsing fails
-        const raw = await response.text();
-        let data;
-        try {
-          data = JSON.parse(raw);
-        } catch (err) {
-          console.error('[GaragesPage] Failed to parse garage API response as JSON', err, raw);
-          throw new Error('Invalid JSON from garage API');
+        let data = null;
+
+        if (apiUrl) {
+          try {
+            const response = await fetch(apiUrl, {
+              headers: { Accept: "application/json" },
+            });
+            if (response.ok) {
+              data = await response.json();
+              console.log("[GaragesPage] Live API data loaded.");
+            } else {
+              throw new Error(`API responded with ${response.status}`);
+            }
+          } catch (err) {
+            console.warn("[GaragesPage] Live fetch failed; using local data.", err);
+            data = localGarageData; // fallback
+          }
+        } else {
+          console.log("[GaragesPage] Using local data (production).");
+          data = localGarageData;
         }
 
         if (data.status === "success" && data.data?.garages) {
@@ -107,7 +111,6 @@ export default function GaragesPage() {
             const apiData = data.data.garages.find((g) =>
               g.name.toLowerCase().includes(loc.name.toLowerCase())
             );
-
             return {
               ...loc,
               capacity: apiData?.capacity ?? 0,
@@ -120,16 +123,14 @@ export default function GaragesPage() {
             };
           });
 
-          console.table(combined);
           setGaragesData(combined);
           setError(null);
         } else {
-          throw new Error("Invalid data from API");
+          throw new Error("Invalid garage data structure");
         }
       } catch (err) {
-        console.error("Error fetching garage data:", err);
+        console.error("Error loading garage data:", err);
         setError(err.message);
-        // fallback to base list
         setGaragesData(
           garageLocations.map((g) => ({
             ...g,
@@ -143,6 +144,7 @@ export default function GaragesPage() {
         setLoading(false);
       }
     };
+
     fetchGarageData();
   }, []);
 
@@ -220,8 +222,7 @@ export default function GaragesPage() {
                       className="font-semibold"
                       style={{ color: getMarkerColor(selectedGarage.percentage) }}
                     >
-                      {getStatusText(selectedGarage.percentage)} (
-                      {selectedGarage.percentage}%)
+                      {getStatusText(selectedGarage.percentage)} ({selectedGarage.percentage}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -248,15 +249,15 @@ export default function GaragesPage() {
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full" style={{ background: getMarkerColor(30) }} />
-            <span>Available (0-60%)</span>
+            <span>Available (0–60%)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full" style={{ background: getMarkerColor(75) }} />
-            <span>Moderate (61-85%)</span>
+            <span>Moderate (61–85%)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full" style={{ background: getMarkerColor(95) }} />
-            <span>Nearly Full (86-100%)</span>
+            <span>Nearly Full (86–100%)</span>
           </div>
         </div>
       </div>
