@@ -18,7 +18,7 @@ function AboutPage() {
   const teamMembers = [
     'Elijah Paulman',
     'Caue Faria',
-    'Arnac Chennamaneni',
+    'Arnav Chennamaneni',
     'Artur Ulsenheimer'
   ];
 
