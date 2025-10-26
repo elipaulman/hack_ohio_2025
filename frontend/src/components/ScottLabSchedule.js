@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 
-// Simple CSV parser for well-formed CSV (no newlines inside fields expected)
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length === 0) return [];
@@ -90,7 +89,6 @@ export default function ScottLabSchedule() {
 
   function parseTimeToMinutes(t) {
     if (!t) return null;
-    // examples: "2:20 pm", "12:40 pm", "9:35 am"
     const m = t.trim().toLowerCase().match(/(\d{1,2}):(\d{2})\s*(am|pm)/);
     if (!m) return null;
     let hh = parseInt(m[1], 10);
@@ -108,7 +106,6 @@ export default function ScottLabSchedule() {
     const starts = parseTimeToMinutes(r.Start);
     const ends = parseTimeToMinutes(r.End);
     if (starts == null || ends == null) return;
-    // Days can be like "Tue, Thu" or "Mon" or "Mon, Wed, Fri"
     const parts = daysField.split(',').map(s => s.trim());
     parts.forEach(p => {
       const short = p.slice(0,3); // e.g., Mon
@@ -174,6 +171,14 @@ export default function ScottLabSchedule() {
     return `${hh}:${mm.toString().padStart(2, '0')} ${ampm}`;
   }
 
+  // compute current time marker
+  const nowDate = new Date();
+  const todayWeekday = nowDate.getDay();
+  const nowDayIndex = (todayWeekday >= 1 && todayWeekday <= 5) ? (todayWeekday - 1) : null;
+  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  const topNow = ((currentMinutes - startHour * 60) / 60) * hourHeight;
+  const showNow = nowDayIndex !== null && currentMinutes >= startHour * 60 && currentMinutes <= endHour * 60;
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="container mx-auto">
@@ -205,15 +210,20 @@ export default function ScottLabSchedule() {
                     <div key={i} style={{ height: hourHeight, borderTop: '1px solid #f5f5f5', paddingTop: 6 }} className="text-xs text-gray-500 text-right pr-2">{label}</div>
                   );
                 })}
+                {showNow && (
+                  <div style={{ position: 'absolute', top: topNow - 10, left: 6 }} className="text-xs text-red-600">Now {formatTime(currentMinutes)}</div>
+                )}
               </div>
             </div>
 
             {/* Days columns */}
-            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: `repeat(${weekdays.length}, 1fr)` }}>
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, position: 'relative' }}>
               {weekdays.map((wd, colIdx) => (
                 <div key={wd} style={{ borderLeft: '1px solid #f0f0f0' }}>
-                  <div className="text-center font-medium" style={{ height: 32, lineHeight: '32px' }}>{wd}</div>
+                  <div className="text-center font-medium" style={{ height: 32, lineHeight: '32px', background: colIdx === nowDayIndex ? 'rgba(255,77,79,0.04)' : 'transparent' }}>{wd}</div>
                   <div style={{ position: 'relative', height: calendarHeight }}>
+                    {/* now horizontal line is rendered on the parent grid so it spans all days */}
+                    
                     {/* horizontal lines */}
                     {Array.from({ length: hourCount }).map((_, i) => (
                       <div key={i} style={{ position: 'absolute', top: i * hourHeight, left: 0, right: 0, height: 1, background: '#fafafa' }} />
