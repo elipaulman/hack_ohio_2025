@@ -21,3 +21,6 @@ npm-debug.log*
 node_modules/
 .env
 .env.local
+
+.pyc
+*.pyc
