@@ -4,6 +4,7 @@ import HomePage from './components/HomePage';
 import AboutPage from './components/AboutPage';
 import IndoorNavPage from './components/IndoorNav/IndoorNavPage';
 import OutdoorMapPage from './components/OutdoorMapPage';
+import ScottLabSchedule from './components/ScottLabSchedule';
 import './App.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
       {currentPage === 'outdoor-map' && (
         <OutdoorMapPage onNavigate={handleNavigate} />
       )}
+      {currentPage === 'schedule' && <ScottLabSchedule />}
     </div>
   );
 }
