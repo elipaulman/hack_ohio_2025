@@ -217,14 +217,22 @@ const IndoorNavPage = ({ onNavigate }) => {
   const floorsWithPaths = getFloorsWithPaths();
 
   // Calculate the display position based on the viewed floor
-  // For multi-floor paths, show the start position of each floor's segment
+  // During navigation: show actual position
+  // When not navigating (preview): show start position of each floor's segment
   const displayPosition = useMemo(() => {
     // If no path data, return the actual position (if any)
     if (!pathData) {
       return pathFollowing.currentPosition;
     }
 
-    // Check if this is a multi-floor path
+    // If actively navigating, always show the actual position from pathFollowing
+    // (pathFollowing handles multi-floor paths by combining all segments)
+    if (isNavigating && pathFollowing.currentPosition) {
+      console.log('[IndoorNavPage] Navigating - showing actual position:', pathFollowing.currentPosition);
+      return pathFollowing.currentPosition;
+    }
+
+    // Not navigating - show preview positions (start of each floor segment)
     const isMultiFloor = pathData.segments && Array.isArray(pathData.segments);
 
     if (isMultiFloor) {
@@ -236,7 +244,7 @@ const IndoorNavPage = ({ onNavigate }) => {
         const firstWaypoint = currentSegment.waypoints.find(wp => wp && wp.pixel_coords);
 
         if (firstWaypoint && firstWaypoint.pixel_coords) {
-          console.log('[IndoorNavPage] Display position for floor', viewFloor, ':', firstWaypoint.pixel_coords);
+          console.log('[IndoorNavPage] Preview - showing start position for floor', viewFloor, ':', firstWaypoint.pixel_coords);
           return {
             x: firstWaypoint.pixel_coords.x,
             y: firstWaypoint.pixel_coords.y
@@ -256,7 +264,7 @@ const IndoorNavPage = ({ onNavigate }) => {
     }
 
     return null;
-  }, [pathData, viewFloor, pathFollowing.currentPosition, selectedStartFloor]);
+  }, [pathData, viewFloor, pathFollowing.currentPosition, selectedStartFloor, isNavigating]);
     // 25 was perfectly opposite of what we want
   const buildingRotationOffset = 295;
   const applyBuildingOffset = useCallback((headingValue) => {
