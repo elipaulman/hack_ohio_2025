@@ -300,7 +300,12 @@ export default function GaragesPage({ onNavigate }) {
       </GoogleMap>
 
       {/* Legend */}
-      <div className="absolute bottom-20 left-3 bg-white p-4 rounded-xl shadow-lg">
+      <div
+        className="absolute left-3 bg-white p-4 rounded-xl shadow-lg"
+        style={{
+          bottom: `calc(80px + env(safe-area-inset-bottom, 0px))`
+        }}
+      >
         <h3 className="font-semibold text-gray-800 mb-2">Garage Status</h3>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
@@ -319,7 +324,12 @@ export default function GaragesPage({ onNavigate }) {
       </div>
 
       {/* Info overlay */}
-      <div className="absolute top-3 left-3 bg-white p-4 rounded-xl shadow-lg max-w-xs">
+      <div
+        className="absolute left-3 bg-white p-4 rounded-xl shadow-lg max-w-xs"
+        style={{
+          top: `calc(12px + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <h2 className="text-lg font-semibold mb-1" style={{ color: "#BB0000" }}>
           OSU Parking Garages
         </h2>
