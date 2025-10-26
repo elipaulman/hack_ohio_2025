@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 const FloorPlanCanvasWithPath = ({
   floorPlanPath,
   pathData,
+  currentFloor,
   userPosition,
   heading,
   onCanvasClick
@@ -39,10 +40,10 @@ const FloorPlanCanvasWithPath = ({
     if (pathData) {
       // Handle multi-floor paths (segments array) vs single-floor paths (waypoints array)
       if (pathData.segments && Array.isArray(pathData.segments)) {
-        // Multi-floor path - draw only the first segment for now
-        const firstSegment = pathData.segments[0];
-        if (firstSegment && firstSegment.waypoints && firstSegment.waypoints.length > 0) {
-          drawPath(ctx, firstSegment.waypoints);
+        // Multi-floor path - draw the segment for the currently viewed floor
+        const currentSegment = pathData.segments.find(seg => seg.floor === currentFloor);
+        if (currentSegment && currentSegment.waypoints && currentSegment.waypoints.length > 0) {
+          drawPath(ctx, currentSegment.waypoints);
         }
       } else if (pathData.waypoints && pathData.waypoints.length > 0) {
         // Single-floor path

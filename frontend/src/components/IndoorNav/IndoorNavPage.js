@@ -92,6 +92,7 @@ const IndoorNavPage = ({ onNavigate }) => {
   const [endLocations, setEndLocations] = useState([]);
   const [pathData, setPathData] = useState(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [viewFloor, setViewFloor] = useState('floor_1'); // Which floor map to display
 
   // Path following hook for navigation
   const pathFollowing = usePathFollowing(pathData);
@@ -145,7 +146,24 @@ const IndoorNavPage = ({ onNavigate }) => {
   // Update map floor when start floor changes (show starting floor by default)
   useEffect(() => {
     setSelectedFloor(selectedStartFloor);
+    setViewFloor(selectedStartFloor);
   }, [selectedStartFloor]);
+
+  // Get available floors that have path segments
+  const getFloorsWithPaths = () => {
+    if (!pathData) return [];
+    
+    if (pathData.segments && Array.isArray(pathData.segments)) {
+      // Multi-floor path - return all floors with segments
+      return pathData.segments.map(seg => seg.floor);
+    } else if (pathData.waypoints) {
+      // Single-floor path
+      return [pathData.start_floor || selectedFloor];
+    }
+    return [];
+  };
+
+  const floorsWithPaths = getFloorsWithPaths();
 
   const buildingRotationOffset = 91;
   const applyBuildingOffset = useCallback((headingValue) => {
@@ -440,12 +458,30 @@ const IndoorNavPage = ({ onNavigate }) => {
       <div className="canvas-container">
         <FloorPlanCanvasWithPath
           ref={floorPlanRef}
-          floorPlanPath={FLOOR_CONFIG[selectedFloor].imagePath}
+          floorPlanPath={FLOOR_CONFIG[viewFloor].imagePath}
           pathData={pathData}
+          currentFloor={viewFloor}
           userPosition={pathFollowing.currentPosition}
           heading={displayHeading}
           onCanvasClick={setPosition}
         />
+        
+        {/* Floor View Switcher - Show when multi-floor path exists */}
+        {floorsWithPaths.length > 1 && (
+          <div className="floor-switcher">
+            <div className="floor-switcher-label">View Floor:</div>
+            {floorsWithPaths.map(floor => (
+              <button
+                key={`floor-view-${floor}`}
+                className={`floor-btn ${viewFloor === floor ? 'active' : ''}`}
+                onClick={() => setViewFloor(floor)}
+              >
+                {FLOOR_CONFIG[floor].name}
+              </button>
+            ))}
+          </div>
+        )}
+        
         <button
           type="button"
           className="recenter-btn recenter-btn--floating"

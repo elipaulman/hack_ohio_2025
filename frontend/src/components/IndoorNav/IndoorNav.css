@@ -882,6 +882,52 @@
   transform: scale(0.9);
 }
 
+/* Floor Switcher */
+.floor-switcher {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 230;
+  backdrop-filter: blur(4px);
+}
+
+.floor-switcher-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  margin-right: 4px;
+}
+
+.floor-btn {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.floor-btn:hover {
+  background: #f5f5f5;
+  border-color: #BB0000;
+}
+
+.floor-btn.active {
+  background: #BB0000;
+  color: white;
+  border-color: #BB0000;
+}
+
 @media (min-width: 768px) {
   .recenter-btn--inline {
     display: none;
@@ -889,6 +935,21 @@
 
   .recenter-btn--floating {
     display: flex;
+  }
+  
+  .floor-switcher {
+    top: 16px;
+    left: 16px;
+    padding: 10px 16px;
+  }
+  
+  .floor-switcher-label {
+    font-size: 14px;
+  }
+  
+  .floor-btn {
+    padding: 8px 16px;
+    font-size: 13px;
   }
 }
 

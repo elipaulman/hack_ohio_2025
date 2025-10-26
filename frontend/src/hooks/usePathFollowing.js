@@ -17,7 +17,23 @@ export const usePathFollowing = (pathData) => {
 
   // Calculate path segments when path data loads
   useEffect(() => {
-    if (!pathData?.waypoints || pathData.waypoints.length < 2) {
+    // Extract waypoints from either single-floor or multi-floor path structure
+    let waypoints = null;
+    
+    if (pathData?.segments && Array.isArray(pathData.segments)) {
+      // Multi-floor path - combine all segments' waypoints
+      waypoints = [];
+      pathData.segments.forEach(segment => {
+        if (segment.waypoints && Array.isArray(segment.waypoints)) {
+          waypoints = waypoints.concat(segment.waypoints);
+        }
+      });
+    } else if (pathData?.waypoints && Array.isArray(pathData.waypoints)) {
+      // Single-floor path
+      waypoints = pathData.waypoints;
+    }
+    
+    if (!waypoints || waypoints.length < 2) {
       pathSegmentsRef.current = [];
       totalPathLengthRef.current = 0;
       setCurrentPosition(null);
@@ -26,12 +42,16 @@ export const usePathFollowing = (pathData) => {
       return;
     }
 
-    const waypoints = pathData.waypoints;
     const segments = [];
     let cumulativeDistance = 0;
 
     // Build segments from waypoints
     for (let i = 0; i < waypoints.length - 1; i++) {
+      // Skip waypoints without pixel_coords (transition markers)
+      if (!waypoints[i].pixel_coords || !waypoints[i + 1].pixel_coords) {
+        continue;
+      }
+      
       const start = waypoints[i].pixel_coords;
       const end = waypoints[i + 1].pixel_coords;
 
@@ -56,21 +76,25 @@ export const usePathFollowing = (pathData) => {
     totalPathLengthRef.current = cumulativeDistance;
 
     // Initialize at start of path (static position until navigation starts)
-    const startPosition = {
-      x: waypoints[0].pixel_coords.x,
-      y: waypoints[0].pixel_coords.y
-    };
+    const firstWaypoint = waypoints.find(wp => wp.pixel_coords);
+    if (firstWaypoint) {
+      const startPosition = {
+        x: firstWaypoint.pixel_coords.x,
+        y: firstWaypoint.pixel_coords.y
+      };
 
-    console.log('[PathFollowing] Setting initial position to:', startPosition);
-    setCurrentPosition(startPosition);
-    setPathProgress(0);
+      console.log('[PathFollowing] Setting initial position to:', startPosition);
+      setCurrentPosition(startPosition);
+      setPathProgress(0);
 
-    console.log('[PathFollowing] Path initialized:', {
-      segments: segments.length,
-      totalLength: cumulativeDistance.toFixed(1) + 'px',
-      waypoints: waypoints.length,
-      startPosition
-    });
+      console.log('[PathFollowing] Path initialized:', {
+        segments: segments.length,
+        totalLength: cumulativeDistance.toFixed(1) + 'px',
+        waypoints: waypoints.length,
+        startPosition,
+        isMultiFloor: pathData?.segments ? true : false
+      });
+    }
   }, [pathData]);
 
   // Calculate position from progress distance along path
