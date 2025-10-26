@@ -6,6 +6,8 @@ import { usePathFollowing } from '../../hooks/usePathFollowing';
 import FloorPlanCanvasWithPath from './FloorPlanCanvasWithPath';
 import './IndoorNav.css';
 
+const API_BASE_URL = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+
 // TODO: Set DEV_MODE to false for production builds and before demoing
 const DEV_MODE = true; // Set to false to disable dev features
 
@@ -311,7 +313,7 @@ const IndoorNavPage = ({ onNavigate }) => {
         end: destRoomId
       });
 
-      const apiUrl = `http://localhost:5000/api/pathfinding?${queryParams.toString()}`;
+      const apiUrl = `${API_BASE_URL}/api/pathfinding?${queryParams.toString()}`;
       console.log('[DEBUG] API request URL:', apiUrl);
       
       const response = await fetch(apiUrl);
