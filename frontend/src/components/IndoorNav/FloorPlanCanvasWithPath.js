@@ -38,15 +38,27 @@ const FloorPlanCanvasWithPath = ({
 
     // Draw path if available
     if (pathData) {
+      console.log('[FloorPlanCanvas] Drawing path for floor:', currentFloor);
+      
       // Handle multi-floor paths (segments array) vs single-floor paths (waypoints array)
       if (pathData.segments && Array.isArray(pathData.segments)) {
         // Multi-floor path - draw the segment for the currently viewed floor
         const currentSegment = pathData.segments.find(seg => seg.floor === currentFloor);
+        
+        console.log('[FloorPlanCanvas] Multi-floor path detected');
+        console.log('[FloorPlanCanvas] Available segments:', pathData.segments.map(s => s.floor));
+        console.log('[FloorPlanCanvas] Looking for floor:', currentFloor);
+        console.log('[FloorPlanCanvas] Found segment:', currentSegment ? 'YES' : 'NO');
+        
         if (currentSegment && currentSegment.waypoints && currentSegment.waypoints.length > 0) {
+          console.log('[FloorPlanCanvas] Drawing segment with', currentSegment.waypoints.length, 'waypoints');
           drawPath(ctx, currentSegment.waypoints);
+        } else {
+          console.log('[FloorPlanCanvas] No path to draw for this floor');
         }
       } else if (pathData.waypoints && pathData.waypoints.length > 0) {
         // Single-floor path
+        console.log('[FloorPlanCanvas] Single-floor path with', pathData.waypoints.length, 'waypoints');
         drawPath(ctx, pathData.waypoints);
       }
     }
@@ -59,12 +71,12 @@ const FloorPlanCanvasWithPath = ({
     } else {
       console.log('[FloorPlanCanvas] No user position to draw');
     }
-  }, [pathData, userPosition, heading]);
+  }, [pathData, userPosition, heading, currentFloor]);
 
-  // Redraw when path data or user position changes
+  // Redraw when path data, user position, or current floor changes
   useEffect(() => {
     drawCanvas();
-  }, [drawCanvas]);
+  }, [drawCanvas, currentFloor]);
 
   const drawPath = (ctx, waypoints) => {
     if (!waypoints || waypoints.length < 2) return;
