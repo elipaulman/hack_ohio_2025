@@ -18,3 +18,9 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+  - type: web
+    name: indoor-navigator-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
