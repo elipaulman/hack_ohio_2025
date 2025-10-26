@@ -6,10 +6,10 @@ import {
   useJsApiLoader,
 } from "@react-google-maps/api";
 
-const center = { lat: 40.0067, lng: -83.0305 }; // OSU Campus center
-const DEFAULT_MAP_HEIGHT = "100vh";
+const center = { lat: 40.0067, lng: -83.0305 }; // OSU campus center
+const DEFAULT_MAP_HEIGHT = "calc(100vh - 112px)";
 
-// Garage locations with addresses and coordinates
+// Garage locations with coordinates
 const garageLocations = [
   { name: "12th Avenue", address: "340 West 12th Avenue", lat: 39.99891, lng: -83.01598 },
   { name: "9th Avenue East", address: "345 West 9th Avenue", lat: 40.00247, lng: -83.01624 },
@@ -30,21 +30,22 @@ const garageLocations = [
   { name: "James Outpatient Care", address: "2061 Kenny Rd, Columbus, OH 43210", lat: 40.01214, lng: -83.03648 },
 ];
 
-// Helper function to get marker color based on percentage full
+// Helper: color and text based on % full
 function getMarkerColor(percentage) {
-  if (percentage <= 60) return "#10B981"; // Green
-  if (percentage <= 85) return "#F59E0B"; // Yellow/Amber
-  return "#EF4444"; // Red
+  // normalize and guard against missing/invalid values
+  const p = Number(percentage);
+  if (!Number.isFinite(p)) return '#9CA3AF'; // neutral gray for unknown
+  if (p <= 60) return "#10B981"; // green
+  if (p <= 85) return "#F59E0B"; // amber
+  return "#EF4444"; // red
 }
-
-// Helper function to get status text
 function getStatusText(percentage) {
   if (percentage <= 60) return "Available";
   if (percentage <= 85) return "Moderate";
   return "Nearly Full";
 }
 
-export default function GaragesPage({ onNavigate }) {
+export default function GaragesPage() {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_KEY,
     libraries: ["places"],
@@ -52,8 +53,6 @@ export default function GaragesPage({ onNavigate }) {
 
   const [garagesData, setGaragesData] = useState([]);
   const [selectedGarage, setSelectedGarage] = useState(null);
-  const [showRoutingModal, setShowRoutingModal] = useState(false);
-  const [routingGarage, setRoutingGarage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mapHeight, setMapHeight] = useState(DEFAULT_MAP_HEIGHT);
@@ -71,135 +70,104 @@ export default function GaragesPage({ onNavigate }) {
   );
 
   const mapContainerStyle = useMemo(
-    () => ({
-      width: "100%",
-      height: mapHeight,
-    }),
+    () => ({ width: "100%", height: mapHeight }),
     [mapHeight]
   );
 
-  // Fetch garage availability data on mount
+  // Fetch API data
   useEffect(() => {
     const fetchGarageData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          "https://content.osu.edu/v2/parking/garages/availability",
-          {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-            },
-          }
-        );
-
+        // Use proxy in development to avoid CORS issues (setupProxy maps /v2 -> https://content.osu.edu)
+        const apiUrl = (process.env.NODE_ENV === 'development')
+          ? '/v2/parking/garages/availability'
+          : 'https://content.osu.edu/v2/parking/garages/availability';
+        console.debug('[GaragesPage] Fetching garage data from', apiUrl);
+        const response = await fetch(apiUrl, { headers: { Accept: 'application/json' } });
+        console.debug('[GaragesPage] response', response.status, response.statusText, 'content-type:', response.headers.get('content-type'));
         if (!response.ok) {
-          throw new Error("Failed to fetch garage data");
+          const body = await response.text().catch(() => '<unreadable>');
+          console.error('[GaragesPage] Non-OK response from garage API', response.status, body);
+          throw new Error(`Failed to fetch garage data: ${response.status}`);
         }
 
-        const data = await response.json();
-
-        console.log("API Response:", data);
-        console.log("API Garages:", data.data?.garages);
+        // Try to parse JSON, but provide verbose logging if parsing fails
+        const raw = await response.text();
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (err) {
+          console.error('[GaragesPage] Failed to parse garage API response as JSON', err, raw);
+          throw new Error('Invalid JSON from garage API');
+        }
 
         if (data.status === "success" && data.data?.garages) {
-          // Combine API data with our location data
-          const combined = garageLocations.map((location) => {
-            const apiData = data.data.garages.find(
-              (g) => g.name === location.name
+          const combined = garageLocations.map((loc) => {
+            const apiData = data.data.garages.find((g) =>
+              g.name.toLowerCase().includes(loc.name.toLowerCase())
             );
 
-            console.log(`Matching ${location.name}:`, apiData);
-
             return {
-              ...location,
-              capacity: apiData?.capacity || 0,
-              count: apiData?.count || 0,
-              percentage: apiData?.percentage || 0,
-              available: apiData ? apiData.capacity - apiData.count : 0,
-              lastUpdated: apiData?.lastUpdated || null,
+              ...loc,
+              capacity: apiData?.capacity ?? 0,
+              count: apiData?.count ?? 0,
+              percentage: apiData?.percentage ?? 0,
+              available: apiData
+                ? Math.max(apiData.capacity - apiData.count, 0)
+                : 0,
+              lastUpdated: apiData?.lastUpdated ?? null,
             };
           });
 
-          console.log("Combined garage data:", combined);
+          console.table(combined);
           setGaragesData(combined);
           setError(null);
         } else {
-          throw new Error("Invalid data format from API");
+          throw new Error("Invalid data from API");
         }
       } catch (err) {
         console.error("Error fetching garage data:", err);
         setError(err.message);
-        // Set garages with empty data if API fails
-        setGaragesData(garageLocations.map(loc => ({
-          ...loc,
-          capacity: 0,
-          count: 0,
-          percentage: 0,
-          available: 0,
-          lastUpdated: null,
-        })));
+        // fallback to base list
+        setGaragesData(
+          garageLocations.map((g) => ({
+            ...g,
+            capacity: 0,
+            count: 0,
+            percentage: 0,
+            available: 0,
+          }))
+        );
       } finally {
         setLoading(false);
       }
     };
-
     fetchGarageData();
   }, []);
 
+  // Responsive map height
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
+    if (typeof window === "undefined") return;
     const updateHeight = () => {
-      // Use full viewport height
-      setMapHeight("100vh");
+      const header = document.querySelector("header");
+      const headerHeight = header ? header.getBoundingClientRect().height : 0;
+      const available = window.innerHeight - headerHeight;
+      const normalized = `${Math.max(Math.round(available), 320)}px`;
+      setMapHeight((prev) => (prev === normalized ? prev : normalized));
     };
-
     updateHeight();
     window.addEventListener("resize", updateHeight);
     window.addEventListener("orientationchange", updateHeight);
-
     return () => {
       window.removeEventListener("resize", updateHeight);
       window.removeEventListener("orientationchange", updateHeight);
     };
   }, []);
 
-  const handleGetDirections = (garage) => {
-    setRoutingGarage(garage);
-    setShowRoutingModal(true);
-    setSelectedGarage(null); // Close info window
-  };
-
-  const openInMapApp = (app, garage) => {
-    const { lat, lng } = garage;
-    let url;
-
-    switch (app) {
-      case "google":
-        // Google Maps works on all platforms
-        url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-        break;
-      case "apple":
-        // Apple Maps (works on iOS and macOS)
-        url = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
-        break;
-      case "waze":
-        // Waze
-        url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-        break;
-      default:
-        return;
-    }
-
-    window.open(url, "_blank");
-    setShowRoutingModal(false);
-  };
-
-  if (loadError) return <div className="p-4 text-red-600">Error loading Google Maps</div>;
-  if (!isLoaded) return <div className="p-4">Loading Map...</div>;
+  if (loadError)
+    return <div className="p-4 text-red-600">Error loading Google Maps</div>;
+  if (!isLoaded) return <div className="p-4">Loading Map …</div>;
 
   return (
     <div className="relative w-full" style={{ height: mapHeight, overflow: "hidden" }}>
@@ -209,67 +177,56 @@ export default function GaragesPage({ onNavigate }) {
         zoom={15}
         options={mapOptions}
       >
-        {/* Garage markers */}
-        {garagesData.map((garage, index) => {
-          const color = getMarkerColor(garage.percentage);
+        {garagesData.map((garage, i) => (
+          <Marker
+            key={i}
+            position={{ lat: garage.lat, lng: garage.lng }}
+            onClick={() => setSelectedGarage(garage)}
+            icon={{
+              path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+              scale: 12,
+              fillColor: getMarkerColor(garage.percentage),
+              fillOpacity: 0.9,
+              strokeWeight: 2,
+              strokeColor: "#ffffff",
+            }}
+          />
+        ))}
 
-          return (
-            <Marker
-              key={index}
-              position={{ lat: garage.lat, lng: garage.lng }}
-              onClick={() => setSelectedGarage(garage)}
-              icon={{
-                path: window.google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: color,
-                fillOpacity: 0.9,
-                strokeWeight: 2,
-                strokeColor: "#ffffff",
-              }}
-            />
-          );
-        })}
-
-        {/* Info Window for selected garage */}
         {selectedGarage && (
           <InfoWindow
             position={{ lat: selectedGarage.lat, lng: selectedGarage.lng }}
             onCloseClick={() => setSelectedGarage(null)}
           >
             <div className="p-2" style={{ minWidth: "200px" }}>
-              <h3 className="font-bold text-lg mb-2" style={{ color: "#BB0000" }}>
+              <h3 className="font-bold text-lg mb-1" style={{ color: "#BB0000" }}>
                 {selectedGarage.name}
               </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {selectedGarage.address}
-              </p>
+              <p className="text-sm text-gray-600 mb-2">{selectedGarage.address}</p>
 
               {selectedGarage.capacity > 0 ? (
                 <>
-                  <div className="mb-2">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">Available:</span>
-                      <span className="font-bold">{selectedGarage.available} spots</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">Capacity:</span>
-                      <span>{selectedGarage.capacity}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="font-medium">Status:</span>
-                      <span
-                        className="font-semibold"
-                        style={{ color: getMarkerColor(selectedGarage.percentage) }}
-                      >
-                        {getStatusText(selectedGarage.percentage)} ({selectedGarage.percentage}%)
-                      </span>
-                    </div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Available:</span>
+                    <strong>{selectedGarage.available}</strong>
                   </div>
-
-                  {/* Progress bar */}
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Capacity:</span>
+                    <span>{selectedGarage.capacity}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Status:</span>
+                    <span
+                      className="font-semibold"
+                      style={{ color: getMarkerColor(selectedGarage.percentage) }}
+                    >
+                      {getStatusText(selectedGarage.percentage)} (
+                      {selectedGarage.percentage}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="h-2 rounded-full transition-all"
+                      className="h-2 rounded-full"
                       style={{
                         width: `${selectedGarage.percentage}%`,
                         backgroundColor: getMarkerColor(selectedGarage.percentage),
@@ -278,22 +235,8 @@ export default function GaragesPage({ onNavigate }) {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-500 mb-3">
-                  Capacity data unavailable
-                </p>
+                <p className="text-sm text-gray-500">Capacity data unavailable</p>
               )}
-
-              <button
-                onClick={() => handleGetDirections(selectedGarage)}
-                className="w-full py-2 px-4 rounded font-semibold text-white transition-colors"
-                style={{
-                  backgroundColor: "#BB0000",
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = "#990000"}
-                onMouseOut={(e) => e.target.style.backgroundColor = "#BB0000"}
-              >
-                Get Directions
-              </button>
             </div>
           </InfoWindow>
         )}
@@ -309,15 +252,15 @@ export default function GaragesPage({ onNavigate }) {
         <h3 className="font-semibold text-gray-800 mb-2">Garage Status</h3>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#10B981" }} />
+            <div className="w-4 h-4 rounded-full" style={{ background: getMarkerColor(30) }} />
             <span>Available (0-60%)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
+            <div className="w-4 h-4 rounded-full" style={{ background: getMarkerColor(75) }} />
             <span>Moderate (61-85%)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#EF4444" }} />
+            <div className="w-4 h-4 rounded-full" style={{ background: getMarkerColor(95) }} />
             <span>Nearly Full (86-100%)</span>
           </div>
         </div>
@@ -334,75 +277,13 @@ export default function GaragesPage({ onNavigate }) {
           OSU Parking Garages
         </h2>
         <p className="text-sm text-gray-600">
-          {loading ? "Loading garage data..." : error ? `Error: ${error}` : `${garagesData.length} garages • Click markers for details`}
+          {loading
+            ? "Loading garage data…"
+            : error
+            ? `Error: ${error}`
+            : `${garagesData.length} garages • Click markers for details`}
         </p>
       </div>
-
-      {/* Routing modal */}
-      {showRoutingModal && routingGarage && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={() => setShowRoutingModal(false)}
-        >
-          <div
-            style={{
-              background: "#fff",
-              padding: "24px",
-              borderRadius: "12px",
-              maxWidth: "400px",
-              width: "90%",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold mb-2" style={{ color: "#BB0000" }}>
-              Get Directions
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Choose your preferred map app to navigate to {routingGarage.name}
-            </p>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => openInMapApp("google", routingGarage)}
-                className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <span>Google Maps</span>
-              </button>
-
-              <button
-                onClick={() => openInMapApp("apple", routingGarage)}
-                className="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
-              >
-                <span>Apple Maps</span>
-              </button>
-
-              <button
-                onClick={() => openInMapApp("waze", routingGarage)}
-                className="w-full py-3 px-4 text-white rounded-lg font-semibold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
-                style={{ backgroundColor: "#33CCFF" }}
-              >
-                <span>Waze</span>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowRoutingModal(false)}
-              className="w-full mt-4 py-2 px-4 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
