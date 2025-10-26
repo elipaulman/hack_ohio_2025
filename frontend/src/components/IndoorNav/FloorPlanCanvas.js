@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 
-const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, onCanvasClick }) => {
+const FloorPlanCanvas = forwardRef(({ floorPlanPath, userPosition, heading, pathHistory, onCanvasClick }, ref) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const imageRef = useRef(new Image());
@@ -28,7 +28,8 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
     velocityY: 0,
     lastMoveTime: 0,
     animationFrame: null,
-    dpr: window.devicePixelRatio || 1
+    dpr: window.devicePixelRatio || 1,
+    fitScale: 1.0
   });
 
   // Resize canvas to fit container
@@ -62,6 +63,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
         const scaleY = canvasHeight / image.height;
         const fitScale = Math.min(scaleX, scaleY) * 0.95;
         state.minScale = fitScale * 0.8; // Allow zooming out slightly beyond fit
+        state.fitScale = fitScale;
 
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         ctx.save();
@@ -133,6 +135,41 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
     ctx.restore();
   }, [imageLoaded, pathHistory, drawPathHistory]);
+
+  // Reset view to re-center and re-fit the floor plan
+  const resetView = useCallback(() => {
+    const canvas = canvasRef.current;
+    const image = imageRef.current;
+    if (!canvas || !imageLoaded || !image.width || !image.height) {
+      return;
+    }
+
+    const state = stateRef.current;
+    const canvasWidth = canvas.width / state.dpr;
+    const canvasHeight = canvas.height / state.dpr;
+    const scaleX = canvasWidth / image.width;
+    const scaleY = canvasHeight / image.height;
+    const fitScale = Math.min(scaleX, scaleY) * 0.95;
+
+    state.scale = fitScale;
+    state.fitScale = fitScale;
+    state.minScale = fitScale * 0.8;
+    state.offsetX = (canvasWidth - image.width * state.scale) / 2;
+    state.offsetY = (canvasHeight - image.height * state.scale) / 2;
+    state.velocityX = 0;
+    state.velocityY = 0;
+
+    setTransform({ scale: state.scale, offsetX: state.offsetX, offsetY: state.offsetY });
+    render();
+  }, [imageLoaded, render]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetView
+    }),
+    [resetView]
+  );
 
   // Momentum animation
   const animateMomentum = useCallback(() => {
@@ -414,6 +451,7 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
 
       state.scale = fitScale;
       state.minScale = fitScale * 0.8; // Allow zooming out slightly beyond fit
+      state.fitScale = fitScale;
       state.offsetX = (canvasWidth - imageWidth * state.scale) / 2;
       state.offsetY = (canvasHeight - imageHeight * state.scale) / 2;
 
@@ -514,6 +552,8 @@ const FloorPlanCanvas = ({ floorPlanPath, userPosition, heading, pathHistory, on
       )}
     </div>
   );
-};
+});
+
+FloorPlanCanvas.displayName = 'FloorPlanCanvas';
 
 export default FloorPlanCanvas;

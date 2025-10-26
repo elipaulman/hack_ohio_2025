@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSensorManager } from '../../hooks/useSensorManager';
 import { useStepDetector } from '../../hooks/useStepDetector';
 import { usePositionTracker } from '../../hooks/usePositionTracker';
@@ -10,6 +10,7 @@ const IndoorNavPage = ({ onNavigate }) => {
   const stepDetector = useStepDetector();
   const positionTracker = usePositionTracker();
   const stopSensors = sensorManager.stop;
+  const floorPlanRef = useRef(null);
 
   const [isTracking, setIsTracking] = useState(false);
   const [isCalibrationMode, setIsCalibrationMode] = useState(true);
@@ -134,6 +135,12 @@ const IndoorNavPage = ({ onNavigate }) => {
     }
   };
 
+  const handleRecenterView = useCallback(() => {
+    if (floorPlanRef.current && typeof floorPlanRef.current.resetView === 'function') {
+      floorPlanRef.current.resetView();
+    }
+  }, [floorPlanRef]);
+
   // Start step calibration
   const startStepCalibration = () => {
     stepDetector.startCalibration();
@@ -165,17 +172,36 @@ const IndoorNavPage = ({ onNavigate }) => {
         <div className="status-text" aria-live="polite">
           {statusText}
         </div>
+        <button
+          type="button"
+          className="recenter-btn recenter-btn--inline"
+          onClick={handleRecenterView}
+          title="Recenter map"
+          aria-label="Recenter map"
+        >
+          ⌖
+        </button>
       </div>
 
       {/* Floor Plan Canvas */}
       <div className="canvas-container">
         <FloorPlanCanvas
+          ref={floorPlanRef}
           floorPlanPath="/scott-lab-basement.jpg"
           userPosition={positionTracker.isPositionSet ? positionTracker.position : null}
           heading={displayHeading}
           pathHistory={positionTracker.pathHistory}
           onCanvasClick={setPosition}
         />
+        <button
+          type="button"
+          className="recenter-btn recenter-btn--floating"
+          onClick={handleRecenterView}
+          title="Recenter map"
+          aria-label="Recenter map"
+        >
+          ⌖
+        </button>
       </div>
 
       {/* Calibration Panel */}
