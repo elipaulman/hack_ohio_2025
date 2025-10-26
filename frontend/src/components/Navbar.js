@@ -5,7 +5,7 @@ const NAV_LINKS = [
   { id: 'indoor-nav', label: 'Indoor Nav' },
   { id: 'outdoor-map', label: 'Outdoor Map' },
   { id: 'garages', label: 'Garages' },
-  { id: 'schedule', label: 'Scott Lab Schedule' },
+  { id: 'schedule', label: 'Room Schedules' },
   { id: 'about', label: 'About' },
 ];
 

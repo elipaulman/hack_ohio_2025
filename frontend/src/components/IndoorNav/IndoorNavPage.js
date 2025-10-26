@@ -5,7 +5,8 @@ import { usePositionTracker } from '../../hooks/usePositionTracker';
 import FloorPlanCanvas from './FloorPlanCanvas';
 import './IndoorNav.css';
 
-const DEV_MODE = false;
+// TODO: Set DEV_MODE to false for production builds and before demoing
+const DEV_MODE = true; // Set to false to disable dev features
 
 const IndoorNavPage = ({ onNavigate }) => {
   const sensorManager = useSensorManager();
