@@ -55,7 +55,7 @@ function HomePage({ onNavigate }) {
                 <div className="flex items-center gap-3 p-4 rounded-xl border" style={{ borderColor: '#f0f0f0' }}>
                   <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden>📅</div>
                   <div className="text-left">
-                    <div className="font-medium">Class Schedule</div>
+                    <button onClick={() => onNavigate && onNavigate('schedule')} className="font-medium text-left">Class Schedule</button>
                     <div className="text-sm text-gray-500">Quick access to Scott Lab schedule and events</div>
                   </div>
                 </div>
@@ -68,7 +68,7 @@ function HomePage({ onNavigate }) {
 
               <div className="mt-4 flex gap-3">
                 <button onClick={() => onNavigate && onNavigate('indoor-nav')} className="px-4 py-2 rounded-lg" style={{ background: OSU_SCARLET, color: '#fff' }}>Open Scott Lab Map</button>
-                <button type="button" aria-label="View Scott Lab details" className="px-4 py-2 rounded-lg" style={{ border: '1px solid #eee', background: 'transparent' }}>View Details</button>
+                <button onClick={() => onNavigate && onNavigate('schedule')} className="px-4 py-2 rounded-lg" style={{ border: '1px solid #eee', background: 'transparent' }}>View Schedule</button>
               </div>
             </div>
           </section>
