@@ -173,30 +173,65 @@ class IndoorPathfinder:
         print(f"  * {edges_added} corridor connections (with intermediate points)")
     
     def _connect_doors_to_corridors(self):
-        """Connect doors to corridors"""
-        corridor_nodes = [nid for nid, (x, y, label) in self.nodes.items() if label is None]
-        
+        """Connect doors to corridors ONLY through actual LINE segments"""
         connections_added = 0
-        max_dist = 10.0
+        snap_distance = 2.0  # How close door must be to a line to connect
         
         for room, door_nodes in self.room_to_nodes.items():
             for door_node in door_nodes:
                 dx, dy, _ = self.nodes[door_node]
+                door_point = np.array([dx, dy])
                 
-                distances = []
-                for corridor_node in corridor_nodes:
-                    cx, cy, _ = self.nodes[corridor_node]
-                    dist = np.sqrt((cx - dx)**2 + (cy - dy)**2)
-                    if dist <= max_dist:
-                        distances.append((corridor_node, dist))
+                connected_count = 0
                 
-                distances.sort(key=lambda x: x[1])
-                
-                for corridor_node, dist in distances[:2]:
-                    if not any(neighbor == corridor_node for neighbor, _ in self.graph[door_node]):
-                        self.graph[door_node].append((corridor_node, dist))
-                        self.graph[corridor_node].append((door_node, dist))
-                        connections_added += 1
+                # For each line in the floor plan
+                for line_start, line_end in self.all_lines:
+                    # Check if door is close to this specific line
+                    dist_to_line = self._point_to_line_distance(door_point, line_start, line_end)
+                    
+                    if dist_to_line < snap_distance:
+                        # Door is near this line - find nodes ON this line to connect to
+                        line_vec = line_end - line_start
+                        point_vec = door_point - line_start
+                        line_len_sq = np.dot(line_vec, line_vec)
+                        
+                        if line_len_sq > 0:
+                            # Find projection of door onto the line
+                            t_door = np.dot(point_vec, line_vec) / line_len_sq
+                            t_door = max(0, min(1, t_door))
+                            
+                            # Find closest corridor node ON this line
+                            best_node = None
+                            best_dist = float('inf')
+                            
+                            for node_id, (nx, ny, nlabel) in self.nodes.items():
+                                if node_id == door_node or nlabel is not None:
+                                    continue
+                                
+                                point = np.array([nx, ny])
+                                dist_to_line = self._point_to_line_distance(point, line_start, line_end)
+                                
+                                # Node must be ON this line
+                                if dist_to_line < 0.5:
+                                    point_vec = point - line_start
+                                    t_node = np.dot(point_vec, line_vec) / line_len_sq
+                                    
+                                    # Node must be within line bounds
+                                    if -0.05 < t_node < 1.05:
+                                        # Distance from door to node
+                                        node_dist = np.sqrt((nx - dx)**2 + (ny - dy)**2)
+                                        if node_dist < best_dist and node_dist < 20:
+                                            best_node = node_id
+                                            best_dist = node_dist
+                            
+                            # Connect to the best node on this line
+                            if best_node is not None and connected_count < 2:
+                                if not any(neighbor == best_node for neighbor, _ in self.graph[door_node]):
+                                    distance = best_dist
+                                    self.graph[door_node].append((best_node, distance))
+                                    self.graph[best_node].append((door_node, distance))
+                                    connections_added += 1
+                                    connected_count += 1
         
         print(f"  * {connections_added} door-to-corridor connections")
     
@@ -292,12 +327,12 @@ class IndoorPathfinder:
                 if label == 'ori':
                     origin_x = float(row['x'])
                     origin_y = float(row['y'])
-                elif label == 'ref':
+                elif label in ('ref', 'tr-ori', 'ori-tr'):
                     ref_x = float(row['x'])
                     ref_y = float(row['y'])
         
         if ref_x is None or ref_y is None:
-            raise ValueError("CSV must contain 'ori' (origin) and 'ref' (reference) calibration points")
+            raise ValueError("CSV must contain 'ori' (origin) and 'ref', 'tr-ori', or 'ori-tr' (reference) calibration points")
         
         return origin_x, origin_y, ref_x, ref_y
     
@@ -396,6 +431,93 @@ class IndoorPathfinder:
             doors = len(self.room_to_nodes[room])
             print(f"  {room:15s} ({doors} door{'s' if doors > 1 else ''})")
         print("="*70)
+
+    def export_dxf_text_entities(self, output_csv='extracted_rooms.csv'):
+        """Extract all TEXT entities from DXF file and save to CSV for review"""
+        import csv
+        doc = ezdxf.readfile(self.dxf_path)
+        msp = doc.modelspace()
+        
+        text_entities = []
+        for entity in msp:
+            if entity.dxftype() == 'TEXT':
+                text_content = entity.dxf.text
+                x = entity.dxf.insert.x
+                y = entity.dxf.insert.y
+                text_entities.append({
+                    'x': x,
+                    'y': y,
+                    'text': text_content
+                })
+        
+        # Save to CSV
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_path = os.path.join(base_path, 'data', output_csv)
+        
+        with open(output_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['x', 'y', 'text'])
+            writer.writeheader()
+            writer.writerows(sorted(text_entities, key=lambda t: t['text']))
+        
+        print(f"\n[OK] Extracted {len(text_entities)} text entities")
+        print(f"     Saved to: {output_path}")
+        
+        # Print summary
+        print(f"\n[SUMMARY] Unique room labels found:")
+        unique_rooms = {}
+        for entity in text_entities:
+            text = entity['text'].strip()
+            if text and not text.startswith('Sheet'):
+                if text not in unique_rooms:
+                    unique_rooms[text] = 0
+                unique_rooms[text] += 1
+        
+        for room in sorted(unique_rooms.keys()):
+            print(f"  {room}: {unique_rooms[room]} occurrence(s)")
+        
+        return output_path
+
+    def export_dxf_point_entities(self, output_csv='extracted_points.csv'):
+        """Extract all POINT entities from DXF file and save to CSV for review"""
+        import csv
+        doc = ezdxf.readfile(self.dxf_path)
+        msp = doc.modelspace()
+        
+        point_entities = []
+        point_id = 0
+        for entity in msp:
+            if entity.dxftype() == 'POINT':
+                try:
+                    x = entity.dxf.location.x
+                    y = entity.dxf.location.y
+                    point_entities.append({
+                        'point_id': point_id,
+                        'x': x,
+                        'y': y,
+                        'room_name': f'ROOM_{point_id}',
+                        'notes': 'Extracted POINT entity - needs manual naming'
+                    })
+                    point_id += 1
+                except Exception as e:
+                    print(f"  Warning: Could not extract point - {e}")
+        
+        # Save to CSV
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_path = os.path.join(base_path, 'data', output_csv)
+        
+        with open(output_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['point_id', 'x', 'y', 'room_name', 'notes'])
+            writer.writeheader()
+            writer.writerows(point_entities)
+        
+        print(f"\n[OK] Extracted {len(point_entities)} POINT entities")
+        print(f"     Saved to: {output_path}")
+        print(f"\n[ACTION] Edit this file to:")
+        print(f"     1. Rename room names from ROOM_# to actual classroom names")
+        print(f"     2. Update notes with room descriptions")
+        print(f"     3. Add origin (0,0,ori) and reference point if needed")
+        
+        return output_path
 
     def export_navigation_data(self, output_file='navigation_data.json'):
         """Export lines, nodes, and graph for frontend visualization"""

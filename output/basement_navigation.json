@@ -1,11 +1,11 @@
 {
   "metadata": {
     "total_nodes": 153,
-    "total_edges": 157,
+    "total_edges": 165,
     "total_rooms": 39,
-    "dxf_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans/basement-path-defined.DXF",
-    "image_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans/scott-lab-basement.jpg",
-    "labels_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/point_labels.csv"
+    "dxf_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans\\basement-path-defined.DXF",
+    "image_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans\\scott-lab-basement.jpg",
+    "labels_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data\\basement_labels.csv"
   },
   "nodes": [
     {
@@ -1784,6 +1784,19 @@
       }
     },
     {
+      "from": 147,
+      "to": 33,
+      "distance": 1.9351330197620245,
+      "start": {
+        "x": 79.619976,
+        "y": 92.283242
+      },
+      "end": {
+        "x": 80.7573452455,
+        "y": 90.7176331716
+      }
+    },
+    {
       "from": 31,
       "to": 148,
       "distance": 1.9390120095667005,
@@ -2681,6 +2694,19 @@
       }
     },
     {
+      "from": 123,
+      "to": 88,
+      "distance": 1.9977138055000143,
+      "start": {
+        "x": 27.785541,
+        "y": 16.511943
+      },
+      "end": {
+        "x": 27.7855412244,
+        "y": 18.5096568055
+      }
+    },
+    {
       "from": 90,
       "to": 88,
       "distance": 1.1907629652000011,
@@ -2730,6 +2756,19 @@
       "end": {
         "x": 25.247742,
         "y": 18.509657
+      }
+    },
+    {
+      "from": 88,
+      "to": 122,
+      "distance": 1.9703394703159323,
+      "start": {
+        "x": 27.7855412244,
+        "y": 18.5096568055
+      },
+      "end": {
+        "x": 29.355357,
+        "y": 17.318894
       }
     },
     {
@@ -2785,6 +2824,19 @@
       }
     },
     {
+      "from": 82,
+      "to": 137,
+      "distance": 1.919086423245944,
+      "start": {
+        "x": 27.7855412244,
+        "y": 27.5918654717
+      },
+      "end": {
+        "x": 25.97171,
+        "y": 28.21869
+      }
+    },
+    {
       "from": 84,
       "to": 80,
       "distance": 0.7696708663999985,
@@ -2811,6 +2863,32 @@
       }
     },
     {
+      "from": 84,
+      "to": 120,
+      "distance": 1.7315608855550049,
+      "start": {
+        "x": 27.7855412244,
+        "y": 28.2186895598
+      },
+      "end": {
+        "x": 29.336641,
+        "y": 28.98836
+      }
+    },
+    {
+      "from": 84,
+      "to": 121,
+      "distance": 1.6903344633802815,
+      "start": {
+        "x": 27.7855412244,
+        "y": 28.2186895598
+      },
+      "end": {
+        "x": 29.355357,
+        "y": 27.591865
+      }
+    },
+    {
       "from": 80,
       "to": 92,
       "distance": 5.188289505799997,
@@ -2834,6 +2912,19 @@
       "end": {
         "x": 29.336641,
         "y": 28.98836
+      }
+    },
+    {
+      "from": 80,
+      "to": 137,
+      "distance": 1.9703746536065891,
+      "start": {
+        "x": 27.7855412244,
+        "y": 28.9883604262
+      },
+      "end": {
+        "x": 25.97171,
+        "y": 28.21869
       }
     },
     {
@@ -3055,6 +3146,19 @@
       "end": {
         "x": 20.0,
         "y": 35.838679
+      }
+    },
+    {
+      "from": 133,
+      "to": 95,
+      "distance": 1.6613955758947216,
+      "start": {
+        "x": 18.338741,
+        "y": 35.817392
+      },
+      "end": {
+        "x": 20.0000002029,
+        "y": 35.8386786245
       }
     },
     {
