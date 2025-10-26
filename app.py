@@ -13,6 +13,7 @@ import json
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from pathfinding import run_pathfinding
+from multi_floor_pathfinder import find_multi_floor_path
 
 # Base paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,15 +34,21 @@ def index():
 @app.route('/api/pathfinding')
 def get_pathfinding():
     """
-    Calculate pathfinding between two points
+    Calculate pathfinding between two points (single or multi-floor)
     Query params: 
-      - floor: floor name (basement, floor_1, floor_2)
+      - start_floor: starting floor name (basement, floor_1, floor_2)
       - start: room ID (e.g. E100) OR
       - start_x, start_y: pixel coordinates to find nearest node
+      - end_floor: destination floor name
       - end: destination room ID
+      
+    For backward compatibility, 'floor' param applies to both start and end if start_floor/end_floor not specified
     """
     try:
+        # Get floor parameters (support both old and new API)
         floor = request.args.get('floor', 'basement').lower()
+        start_floor = request.args.get('start_floor', floor).lower()
+        end_floor = request.args.get('end_floor', floor).lower()
         end = request.args.get('end', '').upper()
         
         # Check if we have pixel coordinates for start position
@@ -50,7 +57,8 @@ def get_pathfinding():
         start_room = request.args.get('start', '').upper()
 
         print(f"\n[DEBUG] Pathfinding request:")
-        print(f"  Floor: {floor}")
+        print(f"  Start floor: {start_floor}")
+        print(f"  End floor: {end_floor}")
         print(f"  Start coords: ({start_x}, {start_y})")
         print(f"  Start room: {start_room}")
         print(f"  End room: {end}")
@@ -67,7 +75,7 @@ def get_pathfinding():
                 print(f"[DEBUG] Finding nearest node to pixel ({start_x}, {start_y})")
                 
                 # Load navigation data to find closest node
-                nav_file = os.path.join(DATA_DIR, f'{floor}_navigation.json')
+                nav_file = os.path.join(DATA_DIR, f'{start_floor}_navigation.json')
                 if os.path.exists(nav_file):
                     with open(nav_file, 'r') as f:
                         nav_data = json.load(f)
@@ -101,17 +109,30 @@ def get_pathfinding():
         if not start_room:
             return jsonify({'error': 'Start position must be specified (room ID or coordinates)'}), 400
 
-        print(f"[DEBUG] Running pathfinding: {start_room} -> {end}")
-        
-        # Run pathfinding (skip image generation for speed)
-        result = run_pathfinding(floor, start_room, end, export_json=False, generate_image=False)
+        # Check if this is multi-floor pathfinding
+        if start_floor != end_floor:
+            print(f"[DEBUG] Multi-floor pathfinding: {start_floor}/{start_room} -> {end_floor}/{end}")
+            result = find_multi_floor_path(start_floor, start_room, end_floor, end)
+            
+            if result is None:
+                print(f"[DEBUG] No path found between floors")
+                return jsonify({'error': f'No path found from {start_floor}/{start_room} to {end_floor}/{end}'}), 404
+            
+            print(f"[DEBUG] Multi-floor path found! {len(result.get('waypoints', []))} total waypoints")
+            return jsonify(result)
+        else:
+            # Single floor pathfinding
+            print(f"[DEBUG] Single floor pathfinding: {start_room} -> {end}")
+            
+            # Run pathfinding (skip image generation for speed)
+            result = run_pathfinding(start_floor, start_room, end, export_json=False, generate_image=False)
 
-        if result is None:
-            print(f"[DEBUG] No path found between {start_room} and {end}")
-            return jsonify({'error': f'No path found between {start_room} and {end}'}), 404
+            if result is None:
+                print(f"[DEBUG] No path found between {start_room} and {end}")
+                return jsonify({'error': f'No path found between {start_room} and {end}'}), 404
 
-        print(f"[DEBUG] Path found! {len(result.get('waypoints', []))} waypoints")
-        return jsonify(result)
+            print(f"[DEBUG] Path found! {len(result.get('waypoints', []))} waypoints")
+            return jsonify(result)
 
     except ValueError as e:
         print(f"[DEBUG] ValueError: {e}")

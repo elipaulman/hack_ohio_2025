@@ -36,8 +36,18 @@ const FloorPlanCanvasWithPath = ({
     ctx.drawImage(img, 0, 0);
 
     // Draw path if available
-    if (pathData && pathData.waypoints && pathData.waypoints.length > 0) {
-      drawPath(ctx, pathData.waypoints);
+    if (pathData) {
+      // Handle multi-floor paths (segments array) vs single-floor paths (waypoints array)
+      if (pathData.segments && Array.isArray(pathData.segments)) {
+        // Multi-floor path - draw only the first segment for now
+        const firstSegment = pathData.segments[0];
+        if (firstSegment && firstSegment.waypoints && firstSegment.waypoints.length > 0) {
+          drawPath(ctx, firstSegment.waypoints);
+        }
+      } else if (pathData.waypoints && pathData.waypoints.length > 0) {
+        // Single-floor path
+        drawPath(ctx, pathData.waypoints);
+      }
     }
 
     // Draw user position
@@ -56,9 +66,14 @@ const FloorPlanCanvasWithPath = ({
   }, [drawCanvas]);
 
   const drawPath = (ctx, waypoints) => {
-    if (waypoints.length < 2) return;
+    if (!waypoints || waypoints.length < 2) return;
 
     const canvasHeight = ctx.canvas.height;
+
+    // Filter out invalid waypoints and waypoints without pixel_coords
+    const validWaypoints = waypoints.filter(wp => wp && wp.pixel_coords && wp.pixel_coords.x !== undefined && wp.pixel_coords.y !== undefined);
+    
+    if (validWaypoints.length < 2) return;
 
     // Draw path line
     ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
@@ -67,7 +82,7 @@ const FloorPlanCanvasWithPath = ({
     ctx.lineJoin = 'round';
     ctx.beginPath();
 
-    waypoints.forEach((wp, idx) => {
+    validWaypoints.forEach((wp, idx) => {
       const x = wp.pixel_coords.x;
       const y = canvasHeight - wp.pixel_coords.y; // Flip Y coordinate
 
@@ -81,7 +96,7 @@ const FloorPlanCanvasWithPath = ({
     ctx.stroke();
 
     // Draw waypoint markers
-    waypoints.forEach((wp, idx) => {
+    validWaypoints.forEach((wp, idx) => {
       const x = wp.pixel_coords.x;
       const y = canvasHeight - wp.pixel_coords.y; // Flip Y coordinate
 
@@ -94,7 +109,7 @@ const FloorPlanCanvasWithPath = ({
         ctx.strokeStyle = 'darkgreen';
         ctx.lineWidth = 2;
         ctx.stroke();
-      } else if (idx === waypoints.length - 1) {
+      } else if (idx === validWaypoints.length - 1) {
         // End point - blue square
         ctx.fillStyle = 'rgba(0, 0, 255, 0.9)';
         ctx.fillRect(x - 8, y - 8, 16, 16);
@@ -111,8 +126,8 @@ const FloorPlanCanvasWithPath = ({
     });
 
     // Draw room labels on path
-    waypoints.forEach((wp) => {
-      if (wp.label) {
+    validWaypoints.forEach((wp) => {
+      if (wp.label && wp.pixel_coords) {
         const x = wp.pixel_coords.x;
         const y = canvasHeight - wp.pixel_coords.y - 15; // Flip Y coordinate and offset for label
 

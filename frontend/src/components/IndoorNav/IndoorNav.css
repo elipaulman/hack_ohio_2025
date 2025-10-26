@@ -256,6 +256,23 @@
   font-style: italic;
 }
 
+.location-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(187, 0, 0, 0.03);
+  border-radius: 12px;
+  border-left: 3px solid #BB0000;
+}
+
+.section-title {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #BB0000;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .navigation-panel .form-group {
   margin-bottom: 16px;
   text-align: left;

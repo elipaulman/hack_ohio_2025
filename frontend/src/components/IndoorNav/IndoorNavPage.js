@@ -6,7 +6,7 @@ import { usePathFollowing } from '../../hooks/usePathFollowing';
 import FloorPlanCanvasWithPath from './FloorPlanCanvasWithPath';
 import './IndoorNav.css';
 
-const API_BASE_URL = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // TODO: Set DEV_MODE to false for production builds and before demoing
 const DEV_MODE = true; // Set to false to disable dev features
@@ -36,7 +36,7 @@ const FLOOR_CONFIG = {
 // Parse CSV data and group rooms with multiple doors
 const parseCSV = (csvText) => {
   const lines = csvText.trim().split('\n');
-  const headers = lines[0].split(',');
+  // Skip header line
   const locationMap = new Map(); // Use Map to avoid duplicates
   
   for (let i = 1; i < lines.length; i++) {
@@ -84,9 +84,12 @@ const IndoorNavPage = ({ onNavigate }) => {
   const [showDebug, setShowDebug] = useState(false);
   const [displayHeading, setDisplayHeading] = useState(0);
   const [selectedFloor, setSelectedFloor] = useState('floor_1');
+  const [selectedStartFloor, setSelectedStartFloor] = useState('floor_1');
+  const [selectedEndFloor, setSelectedEndFloor] = useState('floor_1');
   const [selectedStart, setSelectedStart] = useState('');
   const [selectedDestination, setSelectedDestination] = useState('');
-  const [availableLocations, setAvailableLocations] = useState([]);
+  const [startLocations, setStartLocations] = useState([]);
+  const [endLocations, setEndLocations] = useState([]);
   const [pathData, setPathData] = useState(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
@@ -99,28 +102,50 @@ const IndoorNavPage = ({ onNavigate }) => {
     console.log('[IndoorNavPage] pathData:', pathData);
   }, [pathFollowing.currentPosition, pathData]);
 
-  // Load locations from CSV when floor changes
+  // Load start locations when start floor changes
   useEffect(() => {
-    const loadLocations = async () => {
+    const loadStartLocations = async () => {
       try {
-        const floorConfig = FLOOR_CONFIG[selectedFloor];
+        const floorConfig = FLOOR_CONFIG[selectedStartFloor];
         const response = await fetch(floorConfig.csvPath);
         const csvText = await response.text();
         const locations = parseCSV(csvText);
-        setAvailableLocations(locations);
-        
-        // Reset selections when floor changes
+        setStartLocations(locations);
         setSelectedStart('');
-        setSelectedDestination('');
         setPathData(null);
       } catch (error) {
-        console.error('Error loading locations:', error);
+        console.error('Error loading start locations:', error);
         setErrorMessage('Failed to load floor locations');
       }
     };
     
-    loadLocations();
-  }, [selectedFloor]);
+    loadStartLocations();
+  }, [selectedStartFloor]);
+
+  // Load end locations when end floor changes
+  useEffect(() => {
+    const loadEndLocations = async () => {
+      try {
+        const floorConfig = FLOOR_CONFIG[selectedEndFloor];
+        const response = await fetch(floorConfig.csvPath);
+        const csvText = await response.text();
+        const locations = parseCSV(csvText);
+        setEndLocations(locations);
+        setSelectedDestination('');
+        setPathData(null);
+      } catch (error) {
+        console.error('Error loading end locations:', error);
+        setErrorMessage('Failed to load floor locations');
+      }
+    };
+    
+    loadEndLocations();
+  }, [selectedEndFloor]);
+
+  // Update map floor when start floor changes (show starting floor by default)
+  useEffect(() => {
+    setSelectedFloor(selectedStartFloor);
+  }, [selectedStartFloor]);
 
   const buildingRotationOffset = 91;
   const applyBuildingOffset = useCallback((headingValue) => {
@@ -286,29 +311,34 @@ const IndoorNavPage = ({ onNavigate }) => {
   };
 
   // Find path to destination
-  const handleFindPath = useCallback(async (start, destination, floor) => {
-    if (!start || !destination || !floor) {
-      console.log('[DEBUG] Missing start, destination, or floor');
+  const handleFindPath = useCallback(async (start, destination, startFloor, endFloor) => {
+    if (!start || !destination || !startFloor || !endFloor) {
+      console.log('[DEBUG] Missing start, destination, or floors');
       return;
     }
+    
+    const isMultiFloor = startFloor !== endFloor;
 
     setShowLoading(true);
-    setLoadingText(`Finding path from ${start} to ${destination}...`);
+    const floorText = isMultiFloor ? `${FLOOR_CONFIG[startFloor].name} to ${FLOOR_CONFIG[endFloor].name}` : FLOOR_CONFIG[startFloor].name;
+    setLoadingText(`Finding path from ${start} to ${destination} (${floorText})...`);
 
     try {
       // Convert IDs to uppercase and ensure proper format
       const startRoomId = start.toUpperCase().trim();
       const destRoomId = destination.toUpperCase().trim();
-      const floorApiId = FLOOR_CONFIG[floor].apiId;
+      const startFloorApiId = FLOOR_CONFIG[startFloor].apiId;
+      const endFloorApiId = FLOOR_CONFIG[endFloor].apiId;
       
       console.log('[DEBUG] ============ PATH CALCULATION ============');
-      console.log('[DEBUG] Floor:', floorApiId);
-      console.log('[DEBUG] Start room:', startRoomId);
-      console.log('[DEBUG] Destination room:', destRoomId);
+      console.log('[DEBUG] Start:', `${startFloorApiId}/${startRoomId}`);
+      console.log('[DEBUG] End:', `${endFloorApiId}/${destRoomId}`);
+      console.log('[DEBUG] Multi-floor:', isMultiFloor);
       
-      // Build query using the selected start and end rooms
+      // Build query using the selected start and end rooms with floor info
       const queryParams = new URLSearchParams({
-        floor: floorApiId,
+        start_floor: startFloorApiId,
+        end_floor: endFloorApiId,
         start: startRoomId,
         end: destRoomId
       });
@@ -333,17 +363,22 @@ const IndoorNavPage = ({ onNavigate }) => {
 
       const receivedPathData = await response.json();
       console.log('[DEBUG] ✅ Path found!');
-      console.log('[DEBUG] - Start room:', receivedPathData.start_room);
-      console.log('[DEBUG] - End room:', receivedPathData.end_room);
-      console.log('[DEBUG] - Distance:', receivedPathData.distance, 'units');
+      console.log('[DEBUG] - Start:', `${receivedPathData.start_floor || startFloorApiId}/${receivedPathData.start_room}`);
+      console.log('[DEBUG] - End:', `${receivedPathData.end_floor || endFloorApiId}/${receivedPathData.end_room}`);
+      console.log('[DEBUG] - Distance:', receivedPathData.distance || receivedPathData.total_distance, 'units');
       console.log('[DEBUG] - Waypoints:', receivedPathData.waypoints?.length || 0);
+      if (receivedPathData.transition) {
+        console.log('[DEBUG] - Transition:', `${receivedPathData.transition.exit_stair} -> ${receivedPathData.transition.arrive_stair}`);
+      }
       console.log('[DEBUG] =========================================');
       
       // Store path data for rendering
       setPathData(receivedPathData);
       
       setShowLoading(false);
-      setStatusText(`Path found: ${startRoomId} to ${destRoomId} (${Math.round(receivedPathData.distance || 0)} units)`);
+      const distance = Math.round(receivedPathData.distance || receivedPathData.total_distance || 0);
+      const floorInfo = isMultiFloor ? ` (${FLOOR_CONFIG[startFloor].name} → ${FLOOR_CONFIG[endFloor].name})` : '';
+      setStatusText(`Path found: ${startRoomId} to ${destRoomId}${floorInfo} (${distance} units)`);
       
     } catch (error) {
       setShowLoading(false);
@@ -354,11 +389,11 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   // Auto-trigger pathfinding when both start and destination are selected
   useEffect(() => {
-    if (selectedStart && selectedDestination && selectedFloor) {
+    if (selectedStart && selectedDestination && selectedStartFloor && selectedEndFloor) {
       console.log('[DEBUG] Start and destination selected, auto-triggering pathfinding');
-      handleFindPath(selectedStart, selectedDestination, selectedFloor);
+      handleFindPath(selectedStart, selectedDestination, selectedStartFloor, selectedEndFloor);
     }
-  }, [selectedStart, selectedDestination, selectedFloor, handleFindPath]);
+  }, [selectedStart, selectedDestination, selectedStartFloor, selectedEndFloor, handleFindPath]);
 
   // Update status text when destination is reached
   useEffect(() => {
@@ -458,79 +493,101 @@ const IndoorNavPage = ({ onNavigate }) => {
         
         {!isPanelCollapsed && (
           <>
-            {/* Floor Selector */}
-            <div className="form-group">
-              <label>Floor:</label>
-              <select
-                value={selectedFloor}
-                onChange={(e) => setSelectedFloor(e.target.value)}
-                className="location-select"
-              >
-                {Object.entries(FLOOR_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.name}
-                  </option>
-                ))}
-              </select>
+            {/* Starting Location Section */}
+            <div className="location-section">
+              <h4 className="section-title">Starting Point</h4>
+              
+              <div className="form-group">
+                <label>Floor:</label>
+                <select
+                  value={selectedStartFloor}
+                  onChange={(e) => setSelectedStartFloor(e.target.value)}
+                  className="location-select"
+                >
+                  {Object.entries(FLOOR_CONFIG).map(([key, config]) => (
+                    <option key={`start-floor-${key}`} value={key}>
+                      {config.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Room:</label>
+                <select
+                  value={selectedStart}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    if (newStart === selectedDestination && newStart !== '' && selectedStartFloor === selectedEndFloor) {
+                      setErrorMessage('Start and destination cannot be the same room on the same floor!');
+                      return;
+                    }
+                    setSelectedStart(newStart);
+                  }}
+                  className="location-select"
+                >
+                  <option value="">-- Select starting room --</option>
+                  {startLocations.map(location => (
+                    <option 
+                      key={`start-${location.id}`} 
+                      value={location.id}
+                      disabled={location.id === selectedDestination && selectedStartFloor === selectedEndFloor}
+                    >
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Starting Location Selector */}
-            <div className="form-group">
-              <label>Starting Location:</label>
-              <select
-                value={selectedStart}
-                onChange={(e) => {
-                  const newStart = e.target.value;
-                  if (newStart === selectedDestination && newStart !== '') {
-                    setErrorMessage('Start and destination cannot be the same location!');
-                    return;
-                  }
-                  setSelectedStart(newStart);
-                }}
-                className="location-select"
-              >
-                <option value="">-- Select starting room --</option>
-                {availableLocations.map(location => (
-                  <option 
-                    key={`start-${location.id}`} 
-                    value={location.id}
-                    disabled={location.id === selectedDestination}
-                  >
-                    {location.name}
-                  </option>
-                ))}
-              </select>
+            {/* Destination Section */}
+            <div className="location-section">
+              <h4 className="section-title">Destination</h4>
+              
+              <div className="form-group">
+                <label>Floor:</label>
+                <select
+                  value={selectedEndFloor}
+                  onChange={(e) => setSelectedEndFloor(e.target.value)}
+                  className="location-select"
+                >
+                  {Object.entries(FLOOR_CONFIG).map(([key, config]) => (
+                    <option key={`end-floor-${key}`} value={key}>
+                      {config.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Room:</label>
+                <select
+                  value={selectedDestination}
+                  onChange={(e) => {
+                    const newDestination = e.target.value;
+                    if (newDestination === selectedStart && newDestination !== '' && selectedStartFloor === selectedEndFloor) {
+                      setErrorMessage('Start and destination cannot be the same room on the same floor!');
+                      return;
+                    }
+                    setSelectedDestination(newDestination);
+                  }}
+                  className="location-select"
+                >
+                  <option value="">-- Select destination room --</option>
+                  {endLocations.map(location => (
+                    <option 
+                      key={`dest-${location.id}`} 
+                      value={location.id}
+                      disabled={location.id === selectedStart && selectedStartFloor === selectedEndFloor}
+                    >
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Destination Selector */}
-            <div className="form-group">
-              <label>Destination:</label>
-              <select
-                value={selectedDestination}
-                onChange={(e) => {
-                  const newDestination = e.target.value;
-                  if (newDestination === selectedStart && newDestination !== '') {
-                    setErrorMessage('Start and destination cannot be the same location!');
-                    return;
-                  }
-                  setSelectedDestination(newDestination);
-                }}
-                className="location-select"
-              >
-                <option value="">-- Select destination room --</option>
-                {availableLocations.map(location => (
-                  <option 
-                    key={`dest-${location.id}`} 
-                    value={location.id}
-                    disabled={location.id === selectedStart}
-                  >
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <p className="auto-find-hint">💡 Path will calculate automatically when both locations are selected</p>
+            <p className="auto-find-hint">💡 Path will calculate automatically. Multi-floor routes use stairs.</p>
 
             {/* Start Navigation Button */}
             {pathData && !isNavigating && (
