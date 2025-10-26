@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSensorManager } from '../../hooks/useSensorManager';
 import { useStepDetector } from '../../hooks/useStepDetector';
 import { usePositionTracker } from '../../hooks/usePositionTracker';
@@ -216,7 +216,49 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   const floorsWithPaths = getFloorsWithPaths();
 
-  const buildingRotationOffset = 70;
+  // Calculate the display position based on the viewed floor
+  // For multi-floor paths, show the start position of each floor's segment
+  const displayPosition = useMemo(() => {
+    // If no path data, return the actual position (if any)
+    if (!pathData) {
+      return pathFollowing.currentPosition;
+    }
+
+    // Check if this is a multi-floor path
+    const isMultiFloor = pathData.segments && Array.isArray(pathData.segments);
+
+    if (isMultiFloor) {
+      // Find the segment for the currently viewed floor
+      const currentSegment = pathData.segments.find(seg => seg && seg.floor === viewFloor);
+
+      if (currentSegment && currentSegment.waypoints && Array.isArray(currentSegment.waypoints)) {
+        // Find the first waypoint with pixel_coords in this segment
+        const firstWaypoint = currentSegment.waypoints.find(wp => wp && wp.pixel_coords);
+
+        if (firstWaypoint && firstWaypoint.pixel_coords) {
+          console.log('[IndoorNavPage] Display position for floor', viewFloor, ':', firstWaypoint.pixel_coords);
+          return {
+            x: firstWaypoint.pixel_coords.x,
+            y: firstWaypoint.pixel_coords.y
+          };
+        }
+      }
+
+      // If no segment found for this floor, don't show position
+      console.log('[IndoorNavPage] No segment found for floor', viewFloor);
+      return null;
+    }
+
+    // Single-floor path: only show position if we're on the correct floor
+    const pathFloor = pathData.start_floor || pathData.floor || selectedStartFloor;
+    if (pathFloor === viewFloor) {
+      return pathFollowing.currentPosition;
+    }
+
+    return null;
+  }, [pathData, viewFloor, pathFollowing.currentPosition, selectedStartFloor]);
+
+  const buildingRotationOffset = 205;
   const applyBuildingOffset = useCallback((headingValue) => {
     if (headingValue === null || headingValue === undefined || Number.isNaN(headingValue)) {
       return 0;
@@ -589,7 +631,7 @@ const IndoorNavPage = ({ onNavigate }) => {
           floorPlanPath={FLOOR_CONFIG[viewFloor].imagePath}
           pathData={pathData}
           currentFloor={viewFloor}
-          userPosition={pathFollowing.currentPosition}
+          userPosition={displayPosition}
           heading={displayHeading}
           onCanvasClick={setPosition}
         />
