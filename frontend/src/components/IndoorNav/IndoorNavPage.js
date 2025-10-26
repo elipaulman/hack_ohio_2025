@@ -258,7 +258,7 @@ const IndoorNavPage = ({ onNavigate }) => {
     return null;
   }, [pathData, viewFloor, pathFollowing.currentPosition, selectedStartFloor]);
 
-  const buildingRotationOffset = 25;
+  const buildingRotationOffset = 205;
   const applyBuildingOffset = useCallback((headingValue) => {
     if (headingValue === null || headingValue === undefined || Number.isNaN(headingValue)) {
       return 0;
