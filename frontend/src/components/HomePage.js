@@ -440,7 +440,6 @@ function HomePage({ onNavigate }) {
                 </div>
                 <div>
                   <h4 className="font-bold text-lg md:text-xl text-gray-900">High Traffic — Soon</h4>
-                  <div className="text-xs text-gray-500">Rooms with classes starting or ending soon (within {CROWD_MINUTES_THRESHOLD} minutes)</div>
                 </div>
               </div>
 
