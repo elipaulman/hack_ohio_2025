@@ -50,6 +50,7 @@ export default function ScottLabSchedule() {
   const [roomFilter, setRoomFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(1); // For mobile: 1=Mon, 2=Tue, etc.
 
   useEffect(() => {
     let mounted = true;
@@ -80,6 +81,14 @@ export default function ScottLabSchedule() {
       setSelectedRoom(rooms[0]);
     }
   }, [grouped, selectedRoom]);
+
+  // Set selected day to today on mobile when component loads
+  useEffect(() => {
+    const today = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    if (today >= 1 && today <= 5) {
+      setSelectedDay(today); // 1=Mon, 2=Tue, ..., 5=Fri
+    }
+  }, []);
 
   if (loading) return <div className="p-6">Loading Scott Lab schedule…</div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
@@ -180,70 +189,113 @@ export default function ScottLabSchedule() {
   const showNow = nowDayIndex !== null && currentMinutes >= startHour * 60 && currentMinutes <= endHour * 60;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="container mx-auto">
-        <h1 className="text-2xl font-bold mb-4">Scott Lab — Weekly Schedule (Mon–Fri)</h1>
-        <p className="mb-4 text-sm text-gray-600">Classes placed into weekday/time blocks. Times shown are local class times.</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Scott Lab — Weekly Schedule (Mon–Fri)</h1>
+        <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-600">Classes placed into weekday/time blocks. Times shown are local class times.</p>
 
-        <div className="mb-4 flex items-center gap-3">
-          <label className="text-sm font-medium">Room</label>
-          <select value={selectedRoom || ''} onChange={e => setSelectedRoom(e.target.value)} className="px-3 py-2 border rounded">
-            {visibleRooms.map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
+        <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <label className="text-sm font-medium">Room</label>
+            <select value={selectedRoom || ''} onChange={e => setSelectedRoom(e.target.value)} className="px-2 sm:px-3 py-1.5 sm:py-2 border rounded text-sm max-w-[150px] sm:max-w-[200px] truncate">
+              {visibleRooms.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
 
-          <input placeholder="Filter rooms" value={roomFilter} onChange={e => setRoomFilter(e.target.value)} className="px-3 py-2 border rounded" />
-          <div className="text-sm text-gray-500">{rooms.length} rooms</div>
+            <input placeholder="Filter rooms" value={roomFilter} onChange={e => setRoomFilter(e.target.value)} className="px-2 sm:px-3 py-1.5 sm:py-2 border rounded text-sm w-24 sm:w-32" />
+            <div className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">{rooms.length} rooms</div>
+          </div>
+        </div>
+
+        {/* Mobile day selector */}
+        <div className="mb-3 flex sm:hidden gap-1 overflow-x-auto">
+          {weekdays.map((wd, idx) => (
+            <button
+              key={wd}
+              onClick={() => setSelectedDay(idx + 1)}
+              className={`px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap ${
+                selectedDay === idx + 1
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white text-gray-700 border'
+              }`}
+            >
+              {wd}
+            </button>
+          ))}
         </div>
 
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="flex">
             {/* Time labels column */}
-            <div style={{ width: 70, borderRight: '1px solid #eee' }} className="pt-2">
-              <div style={{ height: 32 }}></div>
+            <div style={{ width: 50, borderRight: '1px solid #eee' }} className="pt-2 sm:w-[70px]">
+              <div style={{ height: 32 }} className="hidden sm:block"></div>
               <div style={{ position: 'relative', height: calendarHeight }}>
                 {Array.from({ length: hourCount + 1 }).map((_, i) => {
                   const hh = startHour + i;
                   const label = `${((hh + 11) % 12) + 1}:00 ${hh >= 12 ? 'pm' : 'am'}`;
                   return (
-                    <div key={i} style={{ height: hourHeight, borderTop: '1px solid #f5f5f5', paddingTop: 6 }} className="text-xs text-gray-500 text-right pr-2">{label}</div>
+                    <div key={i} style={{ height: hourHeight, borderTop: '1px solid #f5f5f5', paddingTop: 6 }} className="text-[10px] sm:text-xs text-gray-500 text-right pr-1 sm:pr-2">{label}</div>
                   );
                 })}
                 {showNow && (
-                  <div style={{ position: 'absolute', top: topNow - 10, left: 6 }} className="text-xs text-red-600">Now {formatTime(currentMinutes)}</div>
+                  <div style={{ position: 'absolute', top: topNow - 10, left: 2 }} className="text-[10px] sm:text-xs text-red-600 sm:left-[6px]">Now {formatTime(currentMinutes)}</div>
                 )}
               </div>
             </div>
 
-            {/* Days columns */}
-            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, position: 'relative' }}>
-              {weekdays.map((wd, colIdx) => (
-                <div key={wd} style={{ borderLeft: '1px solid #f0f0f0' }}>
-                  <div className="text-center font-medium" style={{ height: 32, lineHeight: '32px', background: colIdx === nowDayIndex ? 'rgba(255,77,79,0.04)' : 'transparent' }}>{wd}</div>
-                  <div style={{ position: 'relative', height: calendarHeight }}>
-                    {/* now horizontal line is rendered on the parent grid so it spans all days */}
-                    
-                    {/* horizontal lines */}
-                    {Array.from({ length: hourCount }).map((_, i) => (
-                      <div key={i} style={{ position: 'absolute', top: i * hourHeight, left: 0, right: 0, height: 1, background: '#fafafa' }} />
-                    ))}
+            {/* Days columns - Desktop: all days, Mobile: selected day only */}
+            <div className="flex-1 relative">
+              {/* Desktop view - all 5 days */}
+              <div className="hidden sm:grid" style={{ gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, position: 'relative' }}>
+                {weekdays.map((wd, colIdx) => (
+                  <div key={wd} style={{ borderLeft: '1px solid #f0f0f0' }}>
+                    <div className="text-center font-medium" style={{ height: 32, lineHeight: '32px', background: colIdx === nowDayIndex ? 'rgba(255,77,79,0.04)' : 'transparent' }}>{wd}</div>
+                    <div style={{ position: 'relative', height: calendarHeight }}>
+                      {/* horizontal lines */}
+                      {Array.from({ length: hourCount }).map((_, i) => (
+                        <div key={i} style={{ position: 'absolute', top: i * hourHeight, left: 0, right: 0, height: 1, background: '#fafafa' }} />
+                      ))}
 
-                    {/* events for this day (only for selected room) */}
-                    {showRoomEvents.filter(ev => ev.day === colIdx + 1).map((ev, i) => {
-                      const top = ((ev.start - startHour * 60) / 60) * hourHeight;
-                      const height = ((ev.end - ev.start) / 60) * hourHeight;
-                      const bg = colorForEvent(ev);
-                      return (
-                        <div key={i} style={{ position: 'absolute', top, left: 6, right: 6, height: Math.max(18, height - 4), background: bg, color: '#fff', borderRadius: 6, padding: '4px 6px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600 }}>{ev.title}</div>
-                          <div style={{ fontSize: 11, opacity: 0.95 }}>{ev.room} • {formatTime(ev.start)} - {formatTime(ev.end)}</div>
-                        </div>
-                      );
-                    })}
+                      {/* events for this day (only for selected room) */}
+                      {showRoomEvents.filter(ev => ev.day === colIdx + 1).map((ev, i) => {
+                        const top = ((ev.start - startHour * 60) / 60) * hourHeight;
+                        const height = ((ev.end - ev.start) / 60) * hourHeight;
+                        const bg = colorForEvent(ev);
+                        return (
+                          <div key={i} style={{ position: 'absolute', top, left: 6, right: 6, height: Math.max(18, height - 4), background: bg, color: '#fff', borderRadius: 6, padding: '4px 6px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}>
+                            <div style={{ fontSize: 12, fontWeight: 600 }}>{ev.title}</div>
+                            <div style={{ fontSize: 11, opacity: 0.95 }}>{ev.room} • {formatTime(ev.start)} - {formatTime(ev.end)}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Mobile view - single day */}
+              <div className="sm:hidden">
+                <div style={{ position: 'relative', height: calendarHeight }}>
+                  {/* horizontal lines */}
+                  {Array.from({ length: hourCount }).map((_, i) => (
+                    <div key={i} style={{ position: 'absolute', top: i * hourHeight, left: 0, right: 0, height: 1, background: '#fafafa' }} />
+                  ))}
+
+                  {/* events for selected day (only for selected room) */}
+                  {showRoomEvents.filter(ev => ev.day === selectedDay).map((ev, i) => {
+                    const top = ((ev.start - startHour * 60) / 60) * hourHeight;
+                    const height = ((ev.end - ev.start) / 60) * hourHeight;
+                    const bg = colorForEvent(ev);
+                    return (
+                      <div key={i} style={{ position: 'absolute', top, left: 4, right: 4, height: Math.max(18, height - 4), background: bg, color: '#fff', borderRadius: 6, padding: '4px 6px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 600 }}>{ev.title}</div>
+                        <div style={{ fontSize: 10, opacity: 0.95 }}>{ev.room} • {formatTime(ev.start)} - {formatTime(ev.end)}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>
