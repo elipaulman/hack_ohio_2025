@@ -98,7 +98,7 @@ class IndoorPathfinder:
                 self.nodes[node_id] = (x, y, label)
                 
                 if label and label != 'ori':
-                    base_room = label.split('_')[0]
+                    base_room = label.split('_')[0].upper()  # Store in uppercase for case-insensitive lookup
                     self.room_to_nodes[base_room].append(node_id)
                 
                 if abs(x) < 0.01 and abs(y) < 0.01:

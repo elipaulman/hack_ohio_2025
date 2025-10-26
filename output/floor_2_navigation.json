@@ -2,7 +2,10 @@
   "metadata": {
     "total_nodes": 203,
     "total_edges": 220,
-    "total_rooms": 63
+    "total_rooms": 63,
+    "dxf_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans\\floor_2.DXF",
+    "image_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans\\scott-lab-2nd-floor.jpg",
+    "labels_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data\\floor_2_labels.csv"
   },
   "nodes": [
     {
@@ -4705,21 +4708,21 @@
         "y": 91.8029780356
       }
     ],
-    "WElev2": [
+    "WELEV2": [
       {
         "id": 194,
         "x": 24.8798776679,
         "y": 97.0928402802
       }
     ],
-    "WElev3": [
+    "WELEV3": [
       {
         "id": 195,
         "x": 24.6498712443,
         "y": 39.2966121197
       }
     ],
-    "EElev1": [
+    "EELEV1": [
       {
         "id": 196,
         "x": 79.8128999427,
@@ -4754,7 +4757,7 @@
         "y": 35.1164427929
       }
     ],
-    "ori-tr": [
+    "ORI-TR": [
       {
         "id": 202,
         "x": 100.3936988251,
