@@ -50,3 +50,135 @@
   background-color: transparent;
   outline: 1px solid transparent;
 }
+
+.navbar {
+  background-color: #bb0000;
+  color: #ffffff;
+}
+
+.navbar__inner {
+  color: inherit;
+}
+
+.navbar__title {
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.navbar__links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar__links--collapsed {
+  display: none;
+}
+
+.navbar__links--measuring {
+  display: flex !important;
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.nav-link {
+  position: relative;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.nav-link--active {
+  background-color: #ffffff;
+  color: #bb0000;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.nav-link--desktop {
+  font-size: 0.925rem;
+}
+
+.nav-link--mobile {
+  font-size: 0.95rem;
+  padding: 0.75rem 1.2rem;
+  width: 100%;
+  text-align: left;
+  border-radius: 0.85rem;
+  display: block;
+}
+
+.navbar__toggle {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+  color: #ffffff;
+}
+
+.navbar__toggle:hover,
+.navbar__toggle:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.navbar__toggle-icon {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s ease;
+}
+
+.navbar__toggle--open .navbar__toggle-icon {
+  transform: rotate(180deg);
+}
+
+.navbar__mobile {
+  background: linear-gradient(135deg, #a30000 0%, #bb0000 45%, #c91818 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: max-height 0.26s ease, opacity 0.18s ease, transform 0.18s ease;
+  padding: 0 1rem;
+}
+
+.navbar__mobile--open {
+  max-height: 400px;
+  opacity: 1;
+  transform: translateY(0);
+  padding: 0.75rem 1rem 1rem;
+}
+
+.navbar__mobile .nav-link {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.navbar__mobile .nav-link + .nav-link {
+  margin-top: 0.4rem;
+}
+
+.navbar__mobile .nav-link--active {
+  background-color: rgba(255, 255, 255, 0.98);
+  color: #bb0000;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}

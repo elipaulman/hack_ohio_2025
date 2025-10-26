@@ -6,12 +6,8 @@ import {
   useJsApiLoader,
 } from "@react-google-maps/api";
 
-const containerStyle = {
-  width: "100%",
-  height: "100vh",
-};
-
 const center = { lat: 40.0067, lng: -83.0305 }; // OSU Campus center
+const DEFAULT_MAP_HEIGHT = "calc(100vh - 112px)";
 
 // Garage locations with addresses and coordinates
 const garageLocations = [
@@ -60,6 +56,7 @@ export default function GaragesPage({ onNavigate }) {
   const [routingGarage, setRoutingGarage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [mapHeight, setMapHeight] = useState(DEFAULT_MAP_HEIGHT);
 
   const mapOptions = useMemo(
     () => ({
@@ -73,13 +70,27 @@ export default function GaragesPage({ onNavigate }) {
     []
   );
 
+  const mapContainerStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: mapHeight,
+    }),
+    [mapHeight]
+  );
+
   // Fetch garage availability data on mount
   useEffect(() => {
     const fetchGarageData = async () => {
       try {
         setLoading(true);
         const response = await fetch(
-          "/v2/parking/garages/availability"
+          "https://content.osu.edu/v2/parking/garages/availability",
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
         );
 
         if (!response.ok) {
@@ -136,6 +147,31 @@ export default function GaragesPage({ onNavigate }) {
     fetchGarageData();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateHeight = () => {
+      const header = document.querySelector("header");
+      const headerHeight = header ? header.getBoundingClientRect().height : 0;
+      const available = window.innerHeight - headerHeight;
+      const fallback = Number.isFinite(available) ? available : window.innerHeight || 0;
+      const normalizedHeight = `${Math.max(Math.round(fallback), 320)}px`;
+
+      setMapHeight((prev) => (prev === normalizedHeight ? prev : normalizedHeight));
+    };
+
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    window.addEventListener("orientationchange", updateHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateHeight);
+      window.removeEventListener("orientationchange", updateHeight);
+    };
+  }, []);
+
   const handleGetDirections = (garage) => {
     setRoutingGarage(garage);
     setShowRoutingModal(true);
@@ -171,9 +207,9 @@ export default function GaragesPage({ onNavigate }) {
   if (!isLoaded) return <div className="p-4">Loading Map...</div>;
 
   return (
-    <div className="relative w-full h-screen">
+    <div className="relative w-full" style={{ minHeight: mapHeight }}>
       <GoogleMap
-        mapContainerStyle={containerStyle}
+        mapContainerStyle={mapContainerStyle}
         center={center}
         zoom={15}
         options={mapOptions}

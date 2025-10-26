@@ -8,6 +8,9 @@ module.exports = function(app) {
       changeOrigin: true,
       secure: false,
       logLevel: 'debug',
+      onProxyReq: (proxyReq, req, res) => {
+        proxyReq.setHeader('Accept', 'application/json');
+      },
     })
   );
 };
