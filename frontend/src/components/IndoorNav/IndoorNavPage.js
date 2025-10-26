@@ -206,7 +206,7 @@ const IndoorNavPage = ({ onNavigate }) => {
                 Stop Tracking
               </button>
               <button className="btn btn-secondary" onClick={enterRecalibrationMode}>
-                Recalibrate Position
+                Reset Position
               </button>
             </>
           )}
