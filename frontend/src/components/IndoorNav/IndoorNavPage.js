@@ -5,7 +5,6 @@ import { usePositionTracker } from '../../hooks/usePositionTracker';
 import FloorPlanCanvas from './FloorPlanCanvas';
 import './IndoorNav.css';
 
-// DEVELOPER MODE: Set to true to show debug controls and subheader
 const DEV_MODE = false;
 
 const IndoorNavPage = ({ onNavigate }) => {
