@@ -46,6 +46,17 @@ function Navbar({ currentPage, onNavigate }) {
               Outdoor Map
             </button>
             <button
+              style={currentPage === 'garages' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+              className={`px-3 py-2 rounded-md transition-colors ${
+                currentPage === 'garages'
+                  ? 'font-semibold'
+                  : 'text-white hover:bg-opacity-80'
+              }`}
+              onClick={() => onNavigate('garages')}
+            >
+              Garages
+            </button>
+            <button
               style={currentPage === 'about' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
               className={`px-3 py-2 rounded-md transition-colors ${
                 currentPage === 'about'
@@ -94,6 +105,17 @@ function Navbar({ currentPage, onNavigate }) {
           onClick={() => onNavigate('outdoor-map')}
         >
           Outdoor
+        </button>
+        <button
+          style={currentPage === 'garages' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+          className={`px-3 py-2 rounded transition-colors ${
+            currentPage === 'garages'
+              ? 'font-semibold'
+              : 'text-white hover:bg-opacity-80'
+          }`}
+          onClick={() => onNavigate('garages')}
+        >
+          Garages
         </button>
         <button
           style={currentPage === 'about' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
