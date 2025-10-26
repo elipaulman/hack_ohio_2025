@@ -228,7 +228,7 @@ export default function ScottLabSchedule() {
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="flex">
             {/* Time labels column */}
-            <div style={{ width: 60, borderRight: '1px solid #eee' }} className="pt-2 sm:w-[70px]">
+            <div style={{ width: 75, borderRight: '1px solid #eee' }} className="pt-2 sm:w-[70px]">
               <div style={{ height: 32 }} className="hidden sm:block"></div>
               <div style={{ position: 'relative', height: calendarHeight }}>
                 {Array.from({ length: hourCount + 1 }).map((_, i) => {
