@@ -7,7 +7,7 @@ import {
 } from "@react-google-maps/api";
 
 const center = { lat: 40.0067, lng: -83.0305 }; // OSU Campus center
-const DEFAULT_MAP_HEIGHT = "calc(100vh - 112px)";
+const DEFAULT_MAP_HEIGHT = "100vh";
 
 // Garage locations with addresses and coordinates
 const garageLocations = [
@@ -153,13 +153,8 @@ export default function GaragesPage({ onNavigate }) {
     }
 
     const updateHeight = () => {
-      const header = document.querySelector("header");
-      const headerHeight = header ? header.getBoundingClientRect().height : 0;
-      const available = window.innerHeight - headerHeight;
-      const fallback = Number.isFinite(available) ? available : window.innerHeight || 0;
-      const normalizedHeight = `${Math.max(Math.round(fallback), 320)}px`;
-
-      setMapHeight((prev) => (prev === normalizedHeight ? prev : normalizedHeight));
+      // Use full viewport height
+      setMapHeight("100vh");
     };
 
     updateHeight();
@@ -207,7 +202,7 @@ export default function GaragesPage({ onNavigate }) {
   if (!isLoaded) return <div className="p-4">Loading Map...</div>;
 
   return (
-    <div className="relative w-full" style={{ minHeight: mapHeight }}>
+    <div className="relative w-full" style={{ height: mapHeight, overflow: "hidden" }}>
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={center}
