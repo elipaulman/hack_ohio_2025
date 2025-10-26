@@ -30,11 +30,11 @@ const FLOOR_CONFIG = {
   }
 };
 
-// Parse CSV data
+// Parse CSV data and group rooms with multiple doors
 const parseCSV = (csvText) => {
   const lines = csvText.trim().split('\n');
   const headers = lines[0].split(',');
-  const locations = [];
+  const locationMap = new Map(); // Use Map to avoid duplicates
   
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',');
@@ -42,17 +42,26 @@ const parseCSV = (csvText) => {
       const roomName = values[3].trim();
       const notes = values[4] ? values[4].trim() : '';
       
-      // Skip calibration points and utility rooms
+      // Skip calibration points
       if (roomName === 'ori' || roomName === 'ori-tr') continue;
       
-      locations.push({
-        id: roomName,
-        name: notes || roomName
-      });
+      // Extract base room name (remove _1, _2 suffixes for rooms with multiple doors)
+      const baseRoomName = roomName.split('_')[0];
+      
+      // Only add if not already in map (avoids duplicate entries for multi-door rooms)
+      if (!locationMap.has(baseRoomName)) {
+        // Clean up the notes to remove door numbers
+        const cleanNotes = notes.replace(/ Door \d+$/, '');
+        locationMap.set(baseRoomName, {
+          id: baseRoomName,
+          name: cleanNotes || baseRoomName
+        });
+      }
     }
   }
   
-  return locations;
+  // Convert Map to array and sort by room name
+  return Array.from(locationMap.values()).sort((a, b) => a.id.localeCompare(b.id));
 };
 
 const IndoorNavPage = ({ onNavigate }) => {
