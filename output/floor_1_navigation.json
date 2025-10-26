@@ -2,7 +2,10 @@
   "metadata": {
     "total_nodes": 215,
     "total_edges": 202,
-    "total_rooms": 64
+    "total_rooms": 64,
+    "dxf_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans\\floor_1.DXF",
+    "image_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data/floor-plans\\scott-lab-1st-floor.jpg",
+    "labels_file": "C:\\Users\\cauem\\HACKOHIO\\hack_ohio_2025\\data\\floor_1_labels.csv"
   },
   "nodes": [
     {

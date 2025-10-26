@@ -46,7 +46,7 @@ class FloorNavigationConfig:
         return [f for f, cfg in cls.FLOORS.items() if cfg['dxf'] is not None and cfg['labels'] is not None]
 
 
-def run_pathfinding(floor_name, start_room=None, end_room=None, export_json=True):
+def run_pathfinding(floor_name, start_room=None, end_room=None, export_json=True, generate_image=False):
     """
     Run pathfinding for a specific floor
     
@@ -100,11 +100,16 @@ def run_pathfinding(floor_name, start_room=None, end_room=None, export_json=True
             path, distance = pf.find_path(start_room, end_room)
             
             if path:
-                output_png = os.path.join(
-                    base_path,
-                    f'output/route_{config["output_prefix"]}_{start_room}_to_{end_room}.png'
-                )
-                pf.visualize_path(path, start_room, end_room, output_png)
+                # Only generate PNG if requested (slow, skip for API calls)
+                if generate_image:
+                    output_png = os.path.join(
+                        base_path,
+                        f'output/route_{config["output_prefix"]}_{start_room}_to_{end_room}.png'
+                    )
+                    pf.visualize_path(path, start_room, end_room, output_png)
+                    output_file = os.path.basename(output_png)
+                else:
+                    output_file = 'N/A (image generation skipped for speed)'
                 
                 print(f"\n{'='*70}")
                 print(f"NAVIGATION COMPLETE")
@@ -113,14 +118,45 @@ def run_pathfinding(floor_name, start_room=None, end_room=None, export_json=True
                 print(f"Route:     {start_room} -> {end_room}")
                 print(f"Distance:  {distance:.2f} units")
                 print(f"Waypoints: {len(path)}")
-                print(f"Output:    {os.path.basename(output_png)}")
+                print(f"Output:    {output_file}")
                 print(f"{'='*70}\n")
+                
+                # Build path data to return to API
+                waypoints = []
+                for idx, node_id in enumerate(path):
+                    x, y, label = pf.nodes[node_id]  # Nodes are tuples (x, y, label)
+                    waypoints.append({
+                        'index': idx,
+                        'node_id': node_id,
+                        'dxf_coords': {
+                            'x': x,
+                            'y': y
+                        },
+                        'pixel_coords': {
+                            'x': x * 25.4,  # Convert DXF to pixels
+                            'y': y * 25.4
+                        },
+                        'label': label
+                    })
+                
+                path_data = {
+                    'start_room': start_room,
+                    'end_room': end_room,
+                    'distance': distance,
+                    'waypoints': waypoints
+                }
+                
+                # Return the path data for API use
+                return path_data
             else:
                 print(f"\n[X] No path found between {start_room} and {end_room}")
+                return None
         except ValueError as e:
             print(f"\n[X] Error: {e}")
+            return None
     else:
         pf.print_available_rooms()
+        return None
 
 
 def main():

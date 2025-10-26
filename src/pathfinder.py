@@ -337,8 +337,8 @@ class IndoorPathfinder:
         return origin_x, origin_y, ref_x, ref_y
     
     def visualize_path(self, path, start_room, end_room, output_file='navigation_path.png'):
-        """Visualize path with scale calibrated using DXF reference points from CSV"""
-        print(f"Generating visualization...")
+        """Generate clean floor plan image without path overlay (for frontend rendering)"""
+        print(f"Generating floor plan image...")
         
         img = imread(self.image_path)
         img = np.fliplr(img)
@@ -360,8 +360,6 @@ class IndoorPathfinder:
         
         def to_pixel(x, y):
             # Map from DXF coords to image pixels
-            # Origin (0,0) -> Image (0,0)
-            # Ref point (100.39, 130.20) -> Image (img_width, img_height)
             px = (x - origin_x) * scale_x
             py = (y - origin_y) * scale_y
             return px, py
@@ -369,7 +367,7 @@ class IndoorPathfinder:
         fig, ax = plt.subplots(figsize=(18, 14))
         ax.imshow(img, extent=[0, img_width, 0, img_height], origin='lower')
         
-        # Draw all connections
+        # Draw all connections in light gray (for reference)
         for node_id, neighbors in self.graph.items():
             x1, y1, label1 = self.nodes[node_id]
             px1, py1 = to_pixel(x1, y1)
@@ -387,41 +385,69 @@ class IndoorPathfinder:
                 px, py = to_pixel(x, y)
                 ax.plot(px, py, 'o', color='lightblue', markersize=5, alpha=0.5)
         
-        # Draw path
-        if path and len(path) > 1:
-            path_x, path_y = [], []
-            for node_id in path:
-                x, y, _ = self.nodes[node_id]
-                px, py = to_pixel(x, y)
-                path_x.append(px)
-                path_y.append(py)
-            
-            ax.plot(path_x, path_y, 'r-', linewidth=4, label='Optimal Path', zorder=10, alpha=0.9)
-            
-            # Draw waypoints
-            for i, node_id in enumerate(path):
-                px, py = path_x[i], path_y[i]
-                label = self.nodes[node_id][2]
-                
-                if label and label != 'ori':
-                    ax.plot(px, py, 'o', color='red', markersize=10, zorder=11)
-                else:
-                    ax.plot(px, py, 'o', color='orange', markersize=6, zorder=11, alpha=0.7)
-            
-            # Mark start and end
-            ax.plot(path_x[0], path_y[0], 'go', markersize=18, label=f'Start: {start_room}', zorder=12, markeredgecolor='darkgreen', markeredgewidth=2)
-            ax.plot(path_x[-1], path_y[-1], 'bs', markersize=18, label=f'End: {end_room}', zorder=12, markeredgecolor='darkblue', markeredgewidth=2)
+        # Export path data to JSON separately
+        self._export_path_to_json(path, start_room, end_room, origin_x, origin_y, scale_x, scale_y)
         
         ax.set_xlim(0, img_width)
         ax.set_ylim(0, img_height)
         ax.axis('off')
-        ax.legend(loc='upper right', fontsize=12, framealpha=0.95)
         
-        plt.title(f'Navigation: {start_room} -> {end_room}', fontsize=18, fontweight='bold', pad=15)
         plt.tight_layout()
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
         print(f"[OK] Saved: {output_file}")
         plt.close()
+    
+    def _export_path_to_json(self, path, start_room, end_room, origin_x, origin_y, scale_x, scale_y):
+        """Export path data to JSON for frontend rendering"""
+        import json
+        
+        # Convert DXF coordinates to pixel coordinates
+        path_data = {
+            'start_room': start_room,
+            'end_room': end_room,
+            'waypoints': [],
+            'total_distance': 0,
+            'calibration': {
+                'origin_x': origin_x,
+                'origin_y': origin_y,
+                'scale_x': scale_x,
+                'scale_y': scale_y
+            }
+        }
+        
+        # Add waypoints
+        total_dist = 0
+        for i, node_id in enumerate(path):
+            x, y, label = self.nodes[node_id]
+            px = (x - origin_x) * scale_x
+            py = (y - origin_y) * scale_y
+            
+            waypoint = {
+                'index': i,
+                'node_id': node_id,
+                'dxf_coords': {'x': float(x), 'y': float(y)},
+                'pixel_coords': {'x': float(px), 'y': float(py)},
+                'label': label if label else None
+            }
+            path_data['waypoints'].append(waypoint)
+            
+            # Calculate distance
+            if i > 0:
+                prev_x, prev_y, _ = self.nodes[path[i-1]]
+                dist = np.sqrt((x - prev_x)**2 + (y - prev_y)**2)
+                total_dist += dist
+        
+        path_data['total_distance'] = float(total_dist)
+        
+        # Save to JSON file with same name as PNG but .json extension
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        json_file = os.path.join(base_path, 'output', 
+                                 f'path_{start_room}_to_{end_room}.json')
+        
+        with open(json_file, 'w') as f:
+            json.dump(path_data, f, indent=2)
+        
+        print(f"[OK] Path data exported to: {json_file}")
     
     def print_available_rooms(self):
         print("\n" + "="*70)

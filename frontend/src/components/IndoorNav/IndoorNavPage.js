@@ -2,11 +2,58 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSensorManager } from '../../hooks/useSensorManager';
 import { useStepDetector } from '../../hooks/useStepDetector';
 import { usePositionTracker } from '../../hooks/usePositionTracker';
-import FloorPlanCanvas from './FloorPlanCanvas';
+import FloorPlanCanvasWithPath from './FloorPlanCanvasWithPath';
 import './IndoorNav.css';
 
 // TODO: Set DEV_MODE to false for production builds and before demoing
 const DEV_MODE = true; // Set to false to disable dev features
+
+// Floor configuration
+const FLOOR_CONFIG = {
+  basement: {
+    name: 'Basement',
+    csvPath: '/data/basement_labels.csv',
+    imagePath: '/scott-lab-basement.jpg',
+    apiId: 'basement'
+  },
+  floor_1: {
+    name: '1st Floor',
+    csvPath: '/data/floor_1_labels.csv',
+    imagePath: '/scott-lab-1st-floor.jpg',
+    apiId: 'floor_1'
+  },
+  floor_2: {
+    name: '2nd Floor',
+    csvPath: '/data/floor_2_labels.csv',
+    imagePath: '/scott-lab-2nd-floor.jpg',
+    apiId: 'floor_2'
+  }
+};
+
+// Parse CSV data
+const parseCSV = (csvText) => {
+  const lines = csvText.trim().split('\n');
+  const headers = lines[0].split(',');
+  const locations = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',');
+    if (values.length >= 4) {
+      const roomName = values[3].trim();
+      const notes = values[4] ? values[4].trim() : '';
+      
+      // Skip calibration points and utility rooms
+      if (roomName === 'ori' || roomName === 'ori-tr') continue;
+      
+      locations.push({
+        id: roomName,
+        name: notes || roomName
+      });
+    }
+  }
+  
+  return locations;
+};
 
 const IndoorNavPage = ({ onNavigate }) => {
   const sensorManager = useSensorManager();
@@ -16,14 +63,42 @@ const IndoorNavPage = ({ onNavigate }) => {
   const floorPlanRef = useRef(null);
 
   const [isTracking, setIsTracking] = useState(false);
-  const [isCalibrationMode, setIsCalibrationMode] = useState(true);
   const [showStepCalibration, setShowStepCalibration] = useState(false);
-  const [statusText, setStatusText] = useState('Tap the map to set your starting position');
+  const [statusText, setStatusText] = useState('Select floor, starting location, and destination');
   const [showLoading, setShowLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [showDebug, setShowDebug] = useState(false);
   const [displayHeading, setDisplayHeading] = useState(0);
+  const [selectedFloor, setSelectedFloor] = useState('floor_1');
+  const [selectedStart, setSelectedStart] = useState('');
+  const [selectedDestination, setSelectedDestination] = useState('');
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [pathData, setPathData] = useState(null);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+
+  // Load locations from CSV when floor changes
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const floorConfig = FLOOR_CONFIG[selectedFloor];
+        const response = await fetch(floorConfig.csvPath);
+        const csvText = await response.text();
+        const locations = parseCSV(csvText);
+        setAvailableLocations(locations);
+        
+        // Reset selections when floor changes
+        setSelectedStart('');
+        setSelectedDestination('');
+        setPathData(null);
+      } catch (error) {
+        console.error('Error loading locations:', error);
+        setErrorMessage('Failed to load floor locations');
+      }
+    };
+    
+    loadLocations();
+  }, [selectedFloor]);
 
   const buildingRotationOffset = 91;
   const applyBuildingOffset = useCallback((headingValue) => {
@@ -51,10 +126,10 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   // Handle step detection
   const handleStep = useCallback(() => {
-    if (!isCalibrationMode && isTracking) {
+    if (isTracking) {
       positionTracker.onStep();
     }
-  }, [isCalibrationMode, isTracking, positionTracker]);
+  }, [isTracking, positionTracker]);
 
   // Set up sensor callbacks
   useEffect(() => {
@@ -108,34 +183,13 @@ const IndoorNavPage = ({ onNavigate }) => {
     setIsTracking(false);
     positionTracker.resetTracking();
     positionTracker.clearPosition();
-    setIsCalibrationMode(true);
-    setStatusText('Tap the map to set your starting position');
+    setStatusText('Tracking stopped');
     setShowStepCalibration(false);
   };
 
-  // Enter recalibration mode
-  const enterRecalibrationMode = () => {
-    setIsCalibrationMode(true);
-    setStatusText('Tap the map to update your position');
-  };
-
-  // Exit calibration mode
-  const exitCalibrationMode = () => {
-    if (!positionTracker.isPositionSet) {
-      setErrorMessage('Please tap the map to set your position first');
-      return;
-    }
-
-    setIsCalibrationMode(false);
-    setStatusText('Ready to track');
-  };
-
-  // Set position on canvas click
+  // Set position (for step tracking, not for pathfinding start point)
   const setPosition = (x, y) => {
-    if (isCalibrationMode) {
-      positionTracker.setInitialPosition(x, y);
-      setStatusText('Position set! Click "Done" to continue');
-    }
+    positionTracker.setInitialPosition(x, y);
   };
 
   const handleRecenterView = useCallback(() => {
@@ -156,6 +210,81 @@ const IndoorNavPage = ({ onNavigate }) => {
     setShowStepCalibration(false);
     setStatusText(`Calibration complete! ${result.steps} steps detected`);
   };
+
+  // Find path to destination
+  const handleFindPath = useCallback(async (start, destination, floor) => {
+    if (!start || !destination || !floor) {
+      console.log('[DEBUG] Missing start, destination, or floor');
+      return;
+    }
+
+    setShowLoading(true);
+    setLoadingText(`Finding path from ${start} to ${destination}...`);
+
+    try {
+      // Convert IDs to uppercase and ensure proper format
+      const startRoomId = start.toUpperCase().trim();
+      const destRoomId = destination.toUpperCase().trim();
+      const floorApiId = FLOOR_CONFIG[floor].apiId;
+      
+      console.log('[DEBUG] ============ PATH CALCULATION ============');
+      console.log('[DEBUG] Floor:', floorApiId);
+      console.log('[DEBUG] Start room:', startRoomId);
+      console.log('[DEBUG] Destination room:', destRoomId);
+      
+      // Build query using the selected start and end rooms
+      const queryParams = new URLSearchParams({
+        floor: floorApiId,
+        start: startRoomId,
+        end: destRoomId
+      });
+
+      const apiUrl = `http://localhost:5000/api/pathfinding?${queryParams.toString()}`;
+      console.log('[DEBUG] API request URL:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      console.log('[DEBUG] Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to find path';
+        try {
+          const errorData = await response.json();
+          console.log('[DEBUG] Error response:', errorData);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const receivedPathData = await response.json();
+      console.log('[DEBUG] ✅ Path found!');
+      console.log('[DEBUG] - Start room:', receivedPathData.start_room);
+      console.log('[DEBUG] - End room:', receivedPathData.end_room);
+      console.log('[DEBUG] - Distance:', receivedPathData.distance, 'units');
+      console.log('[DEBUG] - Waypoints:', receivedPathData.waypoints?.length || 0);
+      console.log('[DEBUG] =========================================');
+      
+      // Store path data for rendering
+      setPathData(receivedPathData);
+      
+      setShowLoading(false);
+      setStatusText(`Path found: ${startRoomId} to ${destRoomId} (${Math.round(receivedPathData.distance || 0)} units)`);
+      
+    } catch (error) {
+      setShowLoading(false);
+      console.error('[DEBUG] ❌ Pathfinding error:', error);
+      setErrorMessage(`Error finding path: ${error.message}`);
+    }
+  }, [setErrorMessage, setShowLoading, setLoadingText, setStatusText]);
+
+  // Auto-trigger pathfinding when both start and destination are selected
+  useEffect(() => {
+    if (selectedStart && selectedDestination && selectedFloor) {
+      console.log('[DEBUG] Start and destination selected, auto-triggering pathfinding');
+      handleFindPath(selectedStart, selectedDestination, selectedFloor);
+    }
+  }, [selectedStart, selectedDestination, selectedFloor, handleFindPath]);
 
   return (
     <div className="indoor-nav-container">
@@ -190,12 +319,12 @@ const IndoorNavPage = ({ onNavigate }) => {
 
       {/* Floor Plan Canvas */}
       <div className="canvas-container">
-        <FloorPlanCanvas
+        <FloorPlanCanvasWithPath
           ref={floorPlanRef}
-          floorPlanPath="/scott-lab-basement.jpg"
+          floorPlanPath={FLOOR_CONFIG[selectedFloor].imagePath}
+          pathData={pathData}
           userPosition={positionTracker.isPositionSet ? positionTracker.position : null}
           heading={displayHeading}
-          pathHistory={positionTracker.pathHistory}
           onCanvasClick={setPosition}
         />
         <button
@@ -209,23 +338,8 @@ const IndoorNavPage = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* Calibration Panel */}
-      {isCalibrationMode && (
-        <div className="calibration-panel">
-          <h3>Set Your Position</h3>
-          <p>Tap on the floor plan where you are currently standing</p>
-          <button
-            className="btn btn-primary"
-            onClick={exitCalibrationMode}
-            disabled={!positionTracker.isPositionSet}
-          >
-            Done
-          </button>
-        </div>
-      )}
-
-      {/* Main Controls */}
-      {!isCalibrationMode && (
+      {/* Main Controls - Hidden for now, using dropdowns instead */}
+      {false && (
         <div className="main-controls">
           {!isTracking ? (
             <button className="btn btn-start" onClick={startTracking}>
@@ -236,13 +350,106 @@ const IndoorNavPage = ({ onNavigate }) => {
               <button className="btn btn-stop" onClick={stopTracking}>
                 Stop Tracking
               </button>
-              <button className="btn btn-secondary" onClick={enterRecalibrationMode}>
-                Reset Position
+              <button className="btn btn-secondary">
+                Reset
               </button>
             </>
           )}
         </div>
       )}
+
+      {/* Navigation Selection Panel */}
+      <div className={`navigation-panel ${isPanelCollapsed ? 'collapsed' : ''}`}>
+        <div className="panel-header">
+          <h3>Plan Your Route</h3>
+          <button
+            type="button"
+            className="panel-toggle"
+            onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+            aria-label={isPanelCollapsed ? 'Expand panel' : 'Collapse panel'}
+          >
+            {isPanelCollapsed ? '▲' : '▼'}
+          </button>
+        </div>
+        
+        {!isPanelCollapsed && (
+          <>
+            {/* Floor Selector */}
+            <div className="form-group">
+              <label>Floor:</label>
+              <select
+                value={selectedFloor}
+                onChange={(e) => setSelectedFloor(e.target.value)}
+                className="location-select"
+              >
+                {Object.entries(FLOOR_CONFIG).map(([key, config]) => (
+                  <option key={key} value={key}>
+                    {config.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Starting Location Selector */}
+            <div className="form-group">
+              <label>Starting Location:</label>
+              <select
+                value={selectedStart}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  if (newStart === selectedDestination && newStart !== '') {
+                    setErrorMessage('Start and destination cannot be the same location!');
+                    return;
+                  }
+                  setSelectedStart(newStart);
+                }}
+                className="location-select"
+              >
+                <option value="">-- Select starting room --</option>
+                {availableLocations.map(location => (
+                  <option 
+                    key={`start-${location.id}`} 
+                    value={location.id}
+                    disabled={location.id === selectedDestination}
+                  >
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Destination Selector */}
+            <div className="form-group">
+              <label>Destination:</label>
+              <select
+                value={selectedDestination}
+                onChange={(e) => {
+                  const newDestination = e.target.value;
+                  if (newDestination === selectedStart && newDestination !== '') {
+                    setErrorMessage('Start and destination cannot be the same location!');
+                    return;
+                  }
+                  setSelectedDestination(newDestination);
+                }}
+                className="location-select"
+              >
+                <option value="">-- Select destination room --</option>
+                {availableLocations.map(location => (
+                  <option 
+                    key={`dest-${location.id}`} 
+                    value={location.id}
+                    disabled={location.id === selectedStart}
+                  >
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <p className="auto-find-hint">💡 Path will calculate automatically when both locations are selected</p>
+          </>
+        )}
+      </div>
 
       {/* Step Calibration Panel */}
       {showStepCalibration && !stepDetector.isCalibrating && (
