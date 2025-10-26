@@ -9,6 +9,27 @@ import os
 import numpy as np
 
 
+class ElevatorMapper:
+    """Maps elevator connections between all floors"""
+    
+    @staticmethod
+    def get_elevators():
+        """
+        Get list of all elevators that connect all floors
+        Elevators have the same name across all floors and can go to any floor
+        """
+        return ['WElev2', 'WElev3', 'EElev1']
+    
+    @staticmethod
+    def can_connect_floors(from_floor, to_floor):
+        """
+        Check if elevators can connect two floors
+        Elevators connect all floors bidirectionally
+        """
+        valid_floors = ['basement', 'floor_1', 'floor_2']
+        return from_floor in valid_floors and to_floor in valid_floors and from_floor != to_floor
+
+
 class StairwellMapper:
     """Maps stairwell connections between floors"""
     
@@ -30,9 +51,11 @@ class StairwellMapper:
             },
             'W001S': {
                 'basement_to_floor_1': 'W101S',
+                'basement_to_floor_2': 'W201S',  # Direct basement to 2nd floor connection
             },
             'W201S': {
                 'floor_2_to_floor_1': 'W101S',
+                'floor_2_to_basement': 'W001S',  # Direct 2nd floor to basement connection
             },
             
             # W102SS/W002SS/W202SS connections
@@ -42,9 +65,11 @@ class StairwellMapper:
             },
             'W002SS': {
                 'basement_to_floor_1': 'W102SS',
+                'basement_to_floor_2': 'W202SS',  # Direct basement to 2nd floor connection
             },
             'W202SS': {
                 'floor_2_to_floor_1': 'W102SS',
+                'floor_2_to_basement': 'W002SS',  # Direct 2nd floor to basement connection
             },
             
             # W103SN special case
@@ -53,8 +78,13 @@ class StairwellMapper:
                 'floor_1_to_floor_2_exit': 'W103SS',  # Exit via W103SS
                 'floor_1_to_floor_2_arrive': 'W203SN',  # Arrive at W203SN
             },
+            'W003S': {
+                'basement_to_floor_1': 'W103SN',
+                'basement_to_floor_2': 'W203SN',  # Direct basement to 2nd floor connection
+            },
             'W203SN': {
                 'floor_2_to_floor_1': 'W103SN',
+                'floor_2_to_basement': 'W003S',  # Direct 2nd floor to basement connection
             },
             
             # W104S: basement W004S <-> floor_1 W104S <-> floor_2 W204S
@@ -64,9 +94,11 @@ class StairwellMapper:
             },
             'W004S': {
                 'basement_to_floor_1': 'W104S',
+                'basement_to_floor_2': 'W204S',  # Direct basement to 2nd floor connection
             },
             'W204S': {
                 'floor_2_to_floor_1': 'W104S',
+                'floor_2_to_basement': 'W004S',  # Direct 2nd floor to basement connection
             },
             
             # E102S: basement E002S <-> floor_1 E102S <-> floor_2 E202S
@@ -76,9 +108,11 @@ class StairwellMapper:
             },
             'E002S': {
                 'basement_to_floor_1': 'E102S',
+                'basement_to_floor_2': 'E202S',  # Direct basement to 2nd floor connection
             },
             'E202S': {
                 'floor_2_to_floor_1': 'E102S',
+                'floor_2_to_basement': 'E002S',  # Direct 2nd floor to basement connection
             },
             
             # E103S: basement E003S <-> floor_1 E103S <-> floor_2 E203S
@@ -88,9 +122,11 @@ class StairwellMapper:
             },
             'E003S': {
                 'basement_to_floor_1': 'E103S',
+                'basement_to_floor_2': 'E203S',  # Direct basement to 2nd floor connection
             },
             'E203S': {
                 'floor_2_to_floor_1': 'E103S',
+                'floor_2_to_basement': 'E003S',  # Direct 2nd floor to basement connection
             },
             
             # E104S: floor_1 E104S <-> floor_2 E204S
@@ -110,9 +146,11 @@ class StairwellMapper:
             },
             'E005S': {
                 'basement_to_floor_1': 'E105SW',
+                'basement_to_floor_2': 'E205S',  # Direct basement to 2nd floor connection
             },
             'E205S': {
                 'floor_2_to_floor_1': 'E105SE',
+                'floor_2_to_basement': 'E005S',  # Direct 2nd floor to basement connection
             },
         }
         
@@ -166,6 +204,7 @@ class MultiFloorPathfinder:
     def __init__(self):
         self.pathfinders = {}
         self.stair_mapper = StairwellMapper()
+        self.elevator_mapper = ElevatorMapper()
         self._load_all_floors()
     
     def _load_all_floors(self):
@@ -188,7 +227,7 @@ class MultiFloorPathfinder:
             except Exception as e:
                 print(f"[ERROR] Failed to load {floor_name}: {e}")
     
-    def find_multi_floor_path(self, start_floor, start_room, end_floor, end_room):
+    def find_multi_floor_path(self, start_floor, start_room, end_floor, end_room, ada_compliance=False):
         """
         Find path across multiple floors
         
@@ -197,6 +236,7 @@ class MultiFloorPathfinder:
             start_room: Starting room name
             end_floor: Destination floor name
             end_room: Destination room name
+            ada_compliance: If True, use only elevators for floor changes (default: False)
             
         Returns:
             Dictionary with path segments for each floor and transition points
@@ -242,11 +282,11 @@ class MultiFloorPathfinder:
             }
         
         # Multi-floor pathfinding
-        return self._find_cross_floor_path(start_floor, start_room, end_floor, end_room)
+        return self._find_cross_floor_path(start_floor, start_room, end_floor, end_room, ada_compliance)
     
-    def _find_cross_floor_path(self, start_floor, start_room, end_floor, end_room):
-        """Find path across multiple floors using stairs"""
-        # For now, implement simple one-transition logic (start floor -> stairs -> end floor)
+    def _find_cross_floor_path(self, start_floor, start_room, end_floor, end_room, ada_compliance=False):
+        """Find path across multiple floors using stairs or elevators"""
+        # For now, implement simple one-transition logic (start floor -> transition -> end floor)
         # TODO: Implement multi-hop pathfinding for more than 2 floors
         
         start_pf = self.pathfinders.get(start_floor)
@@ -255,32 +295,44 @@ class MultiFloorPathfinder:
         if not start_pf or not end_pf:
             raise ValueError("One or both floors not loaded")
         
-        # Find all stairs on the starting floor
-        start_stairs = self._get_stairs_on_floor(start_floor)
+        # Get transition points based on ADA compliance mode
+        if ada_compliance:
+            # Use elevators only
+            transition_points = self.elevator_mapper.get_elevators()
+            transition_type = 'elevator'
+        else:
+            # Use stairwells
+            transition_points = self._get_stairs_on_floor(start_floor)
+            transition_type = 'stairs'
         
-        # Try to find a path using each available stairwell
+        # Try to find a path using each available transition point
         best_path = None
         best_distance = float('inf')
         best_transition = None
         
-        for stair_name in start_stairs:
-            # Get the connected stair on the destination floor
-            connection = self.stair_mapper.get_connected_stair(
-                stair_name, start_floor, end_floor
-            )
-            
-            if not connection:
-                continue
-            
-            exit_stair = connection['exit_stair']
-            arrive_stair = connection['arrive_stair']
+        for transition_name in transition_points:
+            if ada_compliance:
+                # Elevators: same name on all floors, direct connection
+                exit_point = transition_name
+                arrive_point = transition_name
+            else:
+                # Stairwells: check connection mapping
+                connection = self.stair_mapper.get_connected_stair(
+                    transition_name, start_floor, end_floor
+                )
+                
+                if not connection:
+                    continue
+                
+                exit_point = connection['exit_stair']
+                arrive_point = connection['arrive_stair']
             
             try:
-                # Segment 1: Start room to exit stair on start floor
-                path1, dist1 = start_pf.find_path(start_room, exit_stair.upper())
+                # Segment 1: Start room to exit point on start floor
+                path1, dist1 = start_pf.find_path(start_room, exit_point.upper())
                 
-                # Segment 2: Arrival stair to end room on end floor
-                path2, dist2 = end_pf.find_path(arrive_stair.upper(), end_room)
+                # Segment 2: Arrival point to end room on end floor
+                path2, dist2 = end_pf.find_path(arrive_point.upper(), end_room)
                 
                 if path1 and path2:
                     total_dist = dist1 + dist2
@@ -288,17 +340,19 @@ class MultiFloorPathfinder:
                         best_distance = total_dist
                         best_path = (path1, path2)
                         best_transition = {
-                            'exit_stair': exit_stair,
-                            'arrive_stair': arrive_stair,
+                            'exit_point': exit_point,
+                            'arrive_point': arrive_point,
                             'from_floor': start_floor,
-                            'to_floor': end_floor
+                            'to_floor': end_floor,
+                            'type': transition_type
                         }
             except ValueError:
-                # Stair not found or no path
+                # Transition point not found or no path
                 continue
         
         if not best_path:
-            raise ValueError(f"No path found from {start_floor}/{start_room} to {end_floor}/{end_room}")
+            mode_text = "elevator" if ada_compliance else "stairwell"
+            raise ValueError(f"No {mode_text} path found from {start_floor}/{start_room} to {end_floor}/{end_room}")
         
         # Build the complete path data
         path1, path2 = best_path
@@ -317,7 +371,7 @@ class MultiFloorPathfinder:
                 'dxf_coords': {'x': x, 'y': y},
                 'pixel_coords': {'x': x * 25.4, 'y': y * 25.4},
                 'label': label,
-                'is_transition': label and label.upper() == best_transition['exit_stair'].upper()
+                'is_transition': label and label.upper() == best_transition['exit_point'].upper()
             }
             segment1_waypoints.append(waypoint)
             all_waypoints.append(waypoint)
@@ -336,11 +390,11 @@ class MultiFloorPathfinder:
         all_waypoints.append({
             'floor': 'transition',
             'index': waypoint_idx,
-            'transition_type': 'stairs',
+            'transition_type': transition_type,
             'from_floor': start_floor,
             'to_floor': end_floor,
-            'exit_stair': best_transition['exit_stair'],
-            'arrive_stair': best_transition['arrive_stair']
+            'exit_point': best_transition['exit_point'],
+            'arrive_point': best_transition['arrive_point']
         })
         waypoint_idx += 1
         
@@ -355,7 +409,7 @@ class MultiFloorPathfinder:
                 'dxf_coords': {'x': x, 'y': y},
                 'pixel_coords': {'x': x * 25.4, 'y': y * 25.4},
                 'label': label,
-                'is_transition': label and label.upper() == best_transition['arrive_stair'].upper()
+                'is_transition': label and label.upper() == best_transition['arrive_point'].upper()
             }
             segment2_waypoints.append(waypoint)
             all_waypoints.append(waypoint)
@@ -399,7 +453,7 @@ class MultiFloorPathfinder:
         return stairs
 
 
-def find_multi_floor_path(start_floor, start_room, end_floor, end_room):
+def find_multi_floor_path(start_floor, start_room, end_floor, end_room, ada_compliance=False):
     """
     Convenience function for multi-floor pathfinding
     
@@ -408,6 +462,7 @@ def find_multi_floor_path(start_floor, start_room, end_floor, end_room):
         start_room: Starting room name
         end_floor: Destination floor
         end_room: Destination room name
+        ada_compliance: If True, use only elevators for floor changes (default: False)
     
     Returns:
         Path data dictionary with segments for each floor
@@ -417,10 +472,11 @@ def find_multi_floor_path(start_floor, start_room, end_floor, end_room):
     print(f"{'='*70}")
     print(f"From: {start_floor.upper()} / {start_room}")
     print(f"To:   {end_floor.upper()} / {end_room}")
+    print(f"Mode: {'ELEVATOR ONLY (ADA)' if ada_compliance else 'STAIRS'}")
     print(f"{'='*70}\n")
     
     mfp = MultiFloorPathfinder()
-    result = mfp.find_multi_floor_path(start_floor, start_room, end_floor, end_room)
+    result = mfp.find_multi_floor_path(start_floor, start_room, end_floor, end_room, ada_compliance)
     
     if result:
         print(f"\n[OK] Multi-floor path found!")
@@ -428,7 +484,8 @@ def find_multi_floor_path(start_floor, start_room, end_floor, end_room):
         print(f"  Floors traversed: {' -> '.join(result['floors'])}")
         if 'transition' in result:
             trans = result['transition']
-            print(f"  Transition: {trans['exit_stair']} -> {trans['arrive_stair']}")
+            trans_type = trans.get('type', 'stairs')
+            print(f"  Transition ({trans_type}): {trans['exit_point']} -> {trans['arrive_point']}")
         print(f"  Total waypoints: {len(result['waypoints'])}")
     
     return result

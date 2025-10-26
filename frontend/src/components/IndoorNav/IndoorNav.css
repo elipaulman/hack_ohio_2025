@@ -639,25 +639,38 @@
     font-size: clamp(13px, 4vw, 16px);
   }
 
+  .navigation-panel {
+    max-height: 60vh;
+    padding: 14px 16px;
+    left: 12px;
+    right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0));
+  }
+
   .canvas-container {
     flex: 1;
     margin: 0;
     border-radius: 0;
     box-shadow: none;
     width: 100%;
-    min-height: calc(100vh - 280px);
-    height: 100%;
+    min-height: 250px;
+    max-height: 50vh;
+    height: auto;
+    overflow: hidden;
   }
 
   .canvas-container > div {
     width: 100%;
     height: 100%;
-    min-height: calc(100vh - 280px);
+    min-height: 250px;
+    max-height: 50vh;
   }
 
   .canvas-container canvas {
     width: 100% !important;
     height: 100% !important;
+    max-height: 50vh;
+    object-fit: contain;
   }
 
   .stats-panel {
@@ -687,11 +700,11 @@
     left: 50%;
     right: auto;
     width: min(92vw, 360px);
-    padding: 12px 16px;
-    border-radius: 16px;
-    box-shadow: 0 22px 36px rgba(22, 45, 61, 0.22);
+    padding: 10px 14px;
+    border-radius: 14px;
+    box-shadow: 0 18px 32px rgba(22, 45, 61, 0.2);
     transform: translateX(-50%);
-    bottom: calc(12px + env(safe-area-inset-bottom, 0));
+    bottom: calc(8px + env(safe-area-inset-bottom, 0));
   }
 
   .main-controls {
@@ -885,67 +898,88 @@
 
 /* Floor switcher container */
 .floor-switcher {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  padding: 6px 10px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  padding: 8px 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  align-items: center;
   justify-content: center;
   z-index: 200;
-  max-width: 90%;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  margin: 12px 16px;
+  backdrop-filter: blur(10px);
 }
 
 /* Individual floor buttons */
 .floor-btn {
   background: white;
   border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
   color: #333;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  height: auto;
+  min-height: 28px;
+  width: auto;
+  min-width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  line-height: 1.2;
 }
 
 .floor-btn.active {
   background: #BB0000;
   color: white;
   border-color: #BB0000;
+  box-shadow: 0 1px 4px rgba(187, 0, 0, 0.3);
 }
 
-.floor-btn:hover {
+.floor-btn:hover:not(.active) {
   background: #f3f3f3;
+  border-color: #999;
 }
 
 /* Label above buttons */
 .floor-switcher-label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: #444;
-  margin-right: 8px;
+  margin-right: 4px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  line-height: 1.2;
 }
 
-/* MOBILE FIX */
+/* MOBILE FIX - Floor switcher below status bar */
 @media (max-width: 768px) {
   .floor-switcher {
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
-    padding: 8px;
-    max-width: 95%;
+    padding: 6px 10px;
+    max-width: calc(100% - 24px);
+    width: auto;
+    height: auto;
+    min-height: unset;
+    max-height: 50px;
     scrollbar-width: none; /* Hide scrollbar for Firefox */
+    backdrop-filter: blur(10px);
+    gap: 6px;
+    border-radius: 8px;
+    margin: 8px 12px;
   }
 
   .floor-switcher::-webkit-scrollbar {
@@ -953,9 +987,26 @@
   }
 
   .floor-btn {
-    font-size: 13px;
-    padding: 6px 10px;
+    font-size: 12px;
+    padding: 5px 12px;
     flex-shrink: 0;
+    min-width: fit-content;
+    width: auto;
+    height: auto;
+    min-height: 28px;
+    max-height: 32px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    border-radius: 6px;
+    line-height: 1.2;
+  }
+  
+  .floor-switcher-label {
+    font-size: 11px;
+    margin-right: 6px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    line-height: 1.2;
   }
 }
 
@@ -970,18 +1021,26 @@
   }
   
   .floor-switcher {
-    top: 16px;
-    left: 16px;
-    padding: 10px 16px;
+    padding: 8px 14px;
+    max-width: fit-content;
+    width: auto;
+    height: auto;
+    min-height: unset;
+    border-radius: 10px;
+    margin: 16px 24px;
   }
   
   .floor-switcher-label {
-    font-size: 14px;
+    font-size: 13px;
   }
   
   .floor-btn {
-    padding: 8px 16px;
+    padding: 6px 14px;
     font-size: 13px;
+    min-height: 32px;
+    height: auto;
+    width: auto;
+    border-radius: 7px;
   }
 }
 

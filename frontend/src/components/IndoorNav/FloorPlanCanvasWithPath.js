@@ -40,26 +40,37 @@ const FloorPlanCanvasWithPath = ({
     if (pathData) {
       console.log('[FloorPlanCanvas] Drawing path for floor:', currentFloor);
       
-      // Handle multi-floor paths (segments array) vs single-floor paths (waypoints array)
-      if (pathData.segments && Array.isArray(pathData.segments)) {
-        // Multi-floor path - draw the segment for the currently viewed floor
-        const currentSegment = pathData.segments.find(seg => seg.floor === currentFloor);
-        
-        console.log('[FloorPlanCanvas] Multi-floor path detected');
-        console.log('[FloorPlanCanvas] Available segments:', pathData.segments.map(s => s.floor));
-        console.log('[FloorPlanCanvas] Looking for floor:', currentFloor);
-        console.log('[FloorPlanCanvas] Found segment:', currentSegment ? 'YES' : 'NO');
-        
-        if (currentSegment && currentSegment.waypoints && currentSegment.waypoints.length > 0) {
-          console.log('[FloorPlanCanvas] Drawing segment with', currentSegment.waypoints.length, 'waypoints');
-          drawPath(ctx, currentSegment.waypoints);
+      try {
+        // Handle multi-floor paths (segments array) vs single-floor paths (waypoints array)
+        if (pathData.segments && Array.isArray(pathData.segments)) {
+          // Multi-floor path - draw the segment for the currently viewed floor
+          const currentSegment = pathData.segments.find(seg => seg && seg.floor === currentFloor);
+          
+          console.log('[FloorPlanCanvas] Multi-floor path detected');
+          console.log('[FloorPlanCanvas] Available segments:', pathData.segments.map(s => s?.floor || 'unknown'));
+          console.log('[FloorPlanCanvas] Looking for floor:', currentFloor);
+          console.log('[FloorPlanCanvas] Found segment:', currentSegment ? 'YES' : 'NO');
+          
+          if (currentSegment && currentSegment.waypoints && Array.isArray(currentSegment.waypoints) && currentSegment.waypoints.length > 0) {
+            console.log('[FloorPlanCanvas] Drawing segment with', currentSegment.waypoints.length, 'waypoints');
+            drawPath(ctx, currentSegment.waypoints);
+          } else {
+            console.log('[FloorPlanCanvas] No path to draw for this floor');
+          }
+        } else if (pathData.waypoints && Array.isArray(pathData.waypoints) && pathData.waypoints.length > 0) {
+          // Single-floor path - only draw if we're on the correct floor
+          const pathFloor = pathData.start_floor || pathData.floor || currentFloor;
+          if (pathFloor === currentFloor) {
+            console.log('[FloorPlanCanvas] Single-floor path with', pathData.waypoints.length, 'waypoints');
+            drawPath(ctx, pathData.waypoints);
+          } else {
+            console.log('[FloorPlanCanvas] Single-floor path is on different floor:', pathFloor, '!==', currentFloor);
+          }
         } else {
-          console.log('[FloorPlanCanvas] No path to draw for this floor');
+          console.log('[FloorPlanCanvas] Invalid path data structure');
         }
-      } else if (pathData.waypoints && pathData.waypoints.length > 0) {
-        // Single-floor path
-        console.log('[FloorPlanCanvas] Single-floor path with', pathData.waypoints.length, 'waypoints');
-        drawPath(ctx, pathData.waypoints);
+      } catch (error) {
+        console.error('[FloorPlanCanvas] Error drawing path:', error);
       }
     }
 
@@ -79,135 +90,171 @@ const FloorPlanCanvasWithPath = ({
   }, [drawCanvas, currentFloor]);
 
   const drawPath = (ctx, waypoints) => {
-    if (!waypoints || waypoints.length < 2) return;
+    if (!ctx || !waypoints || !Array.isArray(waypoints) || waypoints.length < 2) {
+      console.log('[FloorPlanCanvas] Invalid path data for drawing');
+      return;
+    }
 
-    const canvasHeight = ctx.canvas.height;
+    try {
+      const canvasHeight = ctx.canvas.height;
 
-    // Filter out invalid waypoints and waypoints without pixel_coords
-    const validWaypoints = waypoints.filter(wp => wp && wp.pixel_coords && wp.pixel_coords.x !== undefined && wp.pixel_coords.y !== undefined);
-    
-    if (validWaypoints.length < 2) return;
-
-    // Draw path line
-    ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-
-    validWaypoints.forEach((wp, idx) => {
-      const x = wp.pixel_coords.x;
-      const y = canvasHeight - wp.pixel_coords.y; // Flip Y coordinate
-
-      if (idx === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
+      // Filter out invalid waypoints and waypoints without pixel_coords
+      const validWaypoints = waypoints.filter(wp => {
+        return wp && 
+               wp.pixel_coords && 
+               typeof wp.pixel_coords.x === 'number' && 
+               typeof wp.pixel_coords.y === 'number' &&
+               !isNaN(wp.pixel_coords.x) && 
+               !isNaN(wp.pixel_coords.y);
+      });
+      
+      if (validWaypoints.length < 2) {
+        console.log('[FloorPlanCanvas] Not enough valid waypoints to draw path');
+        return;
       }
-    });
 
-    ctx.stroke();
+      // Draw path line
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
 
-    // Draw waypoint markers
-    validWaypoints.forEach((wp, idx) => {
-      const x = wp.pixel_coords.x;
-      const y = canvasHeight - wp.pixel_coords.y; // Flip Y coordinate
-
-      if (idx === 0) {
-        // Start point - green circle
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'darkgreen';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else if (idx === validWaypoints.length - 1) {
-        // End point - blue square
-        ctx.fillStyle = 'rgba(0, 0, 255, 0.9)';
-        ctx.fillRect(x - 8, y - 8, 16, 16);
-        ctx.strokeStyle = 'darkblue';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x - 8, y - 8, 16, 16);
-      } else {
-        // Intermediate waypoint - small circle
-        ctx.fillStyle = 'rgba(255, 165, 0, 0.7)';
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-
-    // Draw room labels on path
-    validWaypoints.forEach((wp) => {
-      if (wp.label && wp.pixel_coords) {
+      validWaypoints.forEach((wp, idx) => {
         const x = wp.pixel_coords.x;
-        const y = canvasHeight - wp.pixel_coords.y - 15; // Flip Y coordinate and offset for label
+        const y = canvasHeight - wp.pixel_coords.y; // Flip Y coordinate
 
-        // Draw label background
-        const labelText = wp.label;
-        const textWidth = ctx.measureText(labelText).width;
+        if (idx === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(x - textWidth / 2 - 4, y - 12, textWidth + 8, 16);
+      ctx.stroke();
 
-        // Draw label text
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 11px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(labelText, x, y - 4);
-      }
-    });
+      // Draw waypoint markers
+      validWaypoints.forEach((wp, idx) => {
+        const x = wp.pixel_coords.x;
+        const y = canvasHeight - wp.pixel_coords.y; // Flip Y coordinate
+
+        if (idx === 0) {
+          // Start point - green circle
+          ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
+          ctx.beginPath();
+          ctx.arc(x, y, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'darkgreen';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (idx === validWaypoints.length - 1) {
+          // End point - blue square
+          ctx.fillStyle = 'rgba(0, 0, 255, 0.9)';
+          ctx.fillRect(x - 8, y - 8, 16, 16);
+          ctx.strokeStyle = 'darkblue';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x - 8, y - 8, 16, 16);
+        } else {
+          // Intermediate waypoint - small circle
+          ctx.fillStyle = 'rgba(255, 165, 0, 0.7)';
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // Draw room labels on path
+      validWaypoints.forEach((wp) => {
+        if (wp.label && wp.pixel_coords) {
+          const x = wp.pixel_coords.x;
+          const y = canvasHeight - wp.pixel_coords.y - 15; // Flip Y coordinate and offset for label
+
+          // Draw label background
+          const labelText = wp.label;
+          const textWidth = ctx.measureText(labelText).width;
+
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          ctx.fillRect(x - textWidth / 2 - 4, y - 12, textWidth + 8, 16);
+
+          // Draw label text
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 11px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(labelText, x, y - 4);
+        }
+      });
+    } catch (error) {
+      console.error('[FloorPlanCanvas] Error in drawPath:', error);
+    }
   };
 
   const drawUserPosition = (ctx, position, heading) => {
-    const canvasHeight = ctx.canvas.height;
-    const x = position.x;
-    const y = canvasHeight - position.y; // Flip Y coordinate to match path rendering
+    if (!ctx || !position) {
+      console.log('[FloorPlanCanvas] Invalid user position data');
+      return;
+    }
+    
+    // Validate position coordinates
+    if (typeof position.x !== 'number' || typeof position.y !== 'number' || 
+        isNaN(position.x) || isNaN(position.y)) {
+      console.log('[FloorPlanCanvas] Invalid position coordinates:', position);
+      return;
+    }
+    
+    // Validate heading
+    const validHeading = typeof heading === 'number' && !isNaN(heading) ? heading : 0;
+    
+    try {
+      const canvasHeight = ctx.canvas.height;
+      const x = position.x;
+      const y = canvasHeight - position.y; // Flip Y coordinate to match path rendering
 
-    // Draw a large triangle pointing in the heading direction
-    const triangleSize = 85; // Size of the triangle
-    const radians = (heading * Math.PI) / 180;
+      // Draw a large triangle pointing in the heading direction
+      const triangleSize = 85; // Size of the triangle
+      const radians = (validHeading * Math.PI) / 180;
 
-    // Calculate the three points of the triangle
-    // Tip of the triangle (pointing in heading direction)
-    const tipX = x + triangleSize * Math.sin(radians);
-    const tipY = y - triangleSize * Math.cos(radians); // Negative because Y is flipped
+      // Calculate the three points of the triangle
+      // Tip of the triangle (pointing in heading direction)
+      const tipX = x + triangleSize * Math.sin(radians);
+      const tipY = y - triangleSize * Math.cos(radians); // Negative because Y is flipped
 
-    // Base of the triangle (perpendicular to heading)
-    const baseWidth = triangleSize * 0.6;
-    const baseAngle1 = radians + Math.PI / 2;
-    const baseAngle2 = radians - Math.PI / 2;
+      // Base of the triangle (perpendicular to heading)
+      const baseWidth = triangleSize * 0.6;
+      const baseAngle1 = radians + Math.PI / 2;
+      const baseAngle2 = radians - Math.PI / 2;
 
-    const base1X = x + (baseWidth / 2) * Math.sin(baseAngle1);
-    const base1Y = y - (baseWidth / 2) * Math.cos(baseAngle1);
-    const base2X = x + (baseWidth / 2) * Math.sin(baseAngle2);
-    const base2Y = y - (baseWidth / 2) * Math.cos(baseAngle2);
+      const base1X = x + (baseWidth / 2) * Math.sin(baseAngle1);
+      const base1Y = y - (baseWidth / 2) * Math.cos(baseAngle1);
+      const base2X = x + (baseWidth / 2) * Math.sin(baseAngle2);
+      const base2Y = y - (baseWidth / 2) * Math.cos(baseAngle2);
 
-    // Draw filled triangle
-    ctx.fillStyle = 'rgba(33, 150, 243, 0.9)'; // Blue color
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(base1X, base1Y);
-    ctx.lineTo(base2X, base2Y);
-    ctx.closePath();
-    ctx.fill();
+      // Draw filled triangle
+      ctx.fillStyle = 'rgba(33, 150, 243, 0.9)'; // Blue color
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(base1X, base1Y);
+      ctx.lineTo(base2X, base2Y);
+      ctx.closePath();
+      ctx.fill();
 
-    // Draw white outline for better visibility
-    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(base1X, base1Y);
-    ctx.lineTo(base2X, base2Y);
-    ctx.closePath();
-    ctx.stroke();
+      // Draw white outline for better visibility
+      ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(base1X, base1Y);
+      ctx.lineTo(base2X, base2Y);
+      ctx.closePath();
+      ctx.stroke();
 
-    // Add a darker inner stroke for definition
-    ctx.strokeStyle = 'rgba(25, 118, 210, 1)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+      // Add a darker inner stroke for definition
+      ctx.strokeStyle = 'rgba(25, 118, 210, 1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } catch (error) {
+      console.error('[FloorPlanCanvas] Error in drawUserPosition:', error);
+    }
   };
 
   const handleCanvasClick = (e) => {

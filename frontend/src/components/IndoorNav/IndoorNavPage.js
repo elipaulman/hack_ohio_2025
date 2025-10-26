@@ -34,7 +34,7 @@ const FLOOR_CONFIG = {
 };
 
 // Parse CSV data and group rooms with multiple doors
-const parseCSV = (csvText) => {
+const parseCSV = (csvText, floor = '') => {
   const lines = csvText.trim().split('\n');
   // Skip header line
   const locationMap = new Map(); // Use Map to avoid duplicates
@@ -54,7 +54,13 @@ const parseCSV = (csvText) => {
       // Only add if not already in map (avoids duplicate entries for multi-door rooms)
       if (!locationMap.has(baseRoomName)) {
         // Clean up the notes to remove door numbers
-        const cleanNotes = notes.replace(/ Door \d+$/, '');
+        let cleanNotes = notes.replace(/ Door \d+$/, '');
+        
+        // On first floor, rooms ending with 'E' are exits
+        if (floor === 'floor_1' && baseRoomName.endsWith('E') && !baseRoomName.endsWith('SE') && !baseRoomName.endsWith('NE')) {
+          cleanNotes = cleanNotes ? `${cleanNotes} (Exit)` : `${baseRoomName} (Exit)`;
+        }
+        
         locationMap.set(baseRoomName, {
           id: baseRoomName,
           name: cleanNotes || baseRoomName
@@ -108,15 +114,30 @@ const IndoorNavPage = ({ onNavigate }) => {
     const loadStartLocations = async () => {
       try {
         const floorConfig = FLOOR_CONFIG[selectedStartFloor];
+        if (!floorConfig) {
+          console.error('Invalid floor configuration for:', selectedStartFloor);
+          return;
+        }
+        
         const response = await fetch(floorConfig.csvPath);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch floor data: ${response.status}`);
+        }
+        
         const csvText = await response.text();
-        const locations = parseCSV(csvText);
+        const locations = parseCSV(csvText, selectedStartFloor);
         setStartLocations(locations);
+        
+        // Clear the selected start room when floor changes
+        // This prevents selecting a room that doesn't exist on the new floor
         setSelectedStart('');
+        
+        // Clear path data since the start point is no longer valid
         setPathData(null);
       } catch (error) {
         console.error('Error loading start locations:', error);
-        setErrorMessage('Failed to load floor locations');
+        setErrorMessage(`Failed to load ${FLOOR_CONFIG[selectedStartFloor]?.name || 'floor'} locations`);
+        setStartLocations([]);
       }
     };
     
@@ -128,15 +149,30 @@ const IndoorNavPage = ({ onNavigate }) => {
     const loadEndLocations = async () => {
       try {
         const floorConfig = FLOOR_CONFIG[selectedEndFloor];
+        if (!floorConfig) {
+          console.error('Invalid floor configuration for:', selectedEndFloor);
+          return;
+        }
+        
         const response = await fetch(floorConfig.csvPath);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch floor data: ${response.status}`);
+        }
+        
         const csvText = await response.text();
-        const locations = parseCSV(csvText);
+        const locations = parseCSV(csvText, selectedEndFloor);
         setEndLocations(locations);
+        
+        // Clear the selected destination room when floor changes
+        // This prevents selecting a room that doesn't exist on the new floor
         setSelectedDestination('');
+        
+        // Clear path data since the destination is no longer valid
         setPathData(null);
       } catch (error) {
         console.error('Error loading end locations:', error);
-        setErrorMessage('Failed to load floor locations');
+        setErrorMessage(`Failed to load ${FLOOR_CONFIG[selectedEndFloor]?.name || 'floor'} locations`);
+        setEndLocations([]);
       }
     };
     
@@ -148,17 +184,32 @@ const IndoorNavPage = ({ onNavigate }) => {
     setSelectedFloor(selectedStartFloor);
     setViewFloor(selectedStartFloor);
   }, [selectedStartFloor]);
+  
+  // Validate viewFloor to prevent rendering errors
+  useEffect(() => {
+    if (!FLOOR_CONFIG[viewFloor]) {
+      console.error('[IndoorNavPage] Invalid viewFloor:', viewFloor, 'resetting to default');
+      setViewFloor('floor_1');
+    }
+  }, [viewFloor]);
 
   // Get available floors that have path segments
   const getFloorsWithPaths = () => {
     if (!pathData) return [];
     
-    if (pathData.segments && Array.isArray(pathData.segments)) {
-      // Multi-floor path - return all floors with segments
-      return pathData.segments.map(seg => seg.floor);
-    } else if (pathData.waypoints) {
-      // Single-floor path
-      return [pathData.start_floor || selectedFloor];
+    try {
+      if (pathData.segments && Array.isArray(pathData.segments)) {
+        // Multi-floor path - return all floors with segments
+        return pathData.segments
+          .filter(seg => seg && seg.floor) // Filter out invalid segments
+          .map(seg => seg.floor);
+      } else if (pathData.waypoints && Array.isArray(pathData.waypoints)) {
+        // Single-floor path
+        const floor = pathData.start_floor || selectedStartFloor || selectedFloor;
+        return floor ? [floor] : [];
+      }
+    } catch (error) {
+      console.error('[IndoorNavPage] Error getting floors with paths:', error);
     }
     return [];
   };
@@ -330,8 +381,22 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   // Find path to destination
   const handleFindPath = useCallback(async (start, destination, startFloor, endFloor) => {
+    // Validate all required parameters
     if (!start || !destination || !startFloor || !endFloor) {
       console.log('[DEBUG] Missing start, destination, or floors');
+      return;
+    }
+    
+    // Validate that floors exist in configuration
+    if (!FLOOR_CONFIG[startFloor] || !FLOOR_CONFIG[endFloor]) {
+      console.error('[DEBUG] Invalid floor configuration');
+      setErrorMessage('Invalid floor selection');
+      return;
+    }
+    
+    // Prevent same room on same floor
+    if (start === destination && startFloor === endFloor) {
+      setErrorMessage('Start and destination cannot be the same room on the same floor!');
       return;
     }
     
@@ -348,17 +413,22 @@ const IndoorNavPage = ({ onNavigate }) => {
       const startFloorApiId = FLOOR_CONFIG[startFloor].apiId;
       const endFloorApiId = FLOOR_CONFIG[endFloor].apiId;
       
+      // Get ADA compliance setting from localStorage
+      const adaCompliance = localStorage.getItem('adaCompliance') === 'true';
+      
       console.log('[DEBUG] ============ PATH CALCULATION ============');
       console.log('[DEBUG] Start:', `${startFloorApiId}/${startRoomId}`);
       console.log('[DEBUG] End:', `${endFloorApiId}/${destRoomId}`);
       console.log('[DEBUG] Multi-floor:', isMultiFloor);
+      console.log('[DEBUG] ADA Compliance:', adaCompliance ? 'ELEVATOR' : 'STAIRS');
       
       // Build query using the selected start and end rooms with floor info
       const queryParams = new URLSearchParams({
         start_floor: startFloorApiId,
         end_floor: endFloorApiId,
         start: startRoomId,
-        end: destRoomId
+        end: destRoomId,
+        ada_compliance: adaCompliance.toString()
       });
 
       const apiUrl = `${API_BASE_URL}/api/pathfinding?${queryParams.toString()}`;
@@ -368,18 +438,31 @@ const IndoorNavPage = ({ onNavigate }) => {
       console.log('[DEBUG] Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        let errorMessage = 'Failed to find path';
+        let errorMsg = 'Failed to find path';
         try {
           const errorData = await response.json();
           console.log('[DEBUG] Error response:', errorData);
-          errorMessage = errorData.error || errorMessage;
+          errorMsg = errorData.error || errorMsg;
         } catch {
-          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          errorMsg = `Server error: ${response.status} ${response.statusText}`;
         }
-        throw new Error(errorMessage);
+        throw new Error(errorMsg);
       }
 
       const receivedPathData = await response.json();
+      
+      // Validate received path data
+      if (!receivedPathData) {
+        throw new Error('No path data received from server');
+      }
+      
+      // Check if path has required data structure
+      const hasWaypoints = receivedPathData.waypoints && receivedPathData.waypoints.length > 0;
+      const hasSegments = receivedPathData.segments && Array.isArray(receivedPathData.segments) && receivedPathData.segments.length > 0;
+      
+      if (!hasWaypoints && !hasSegments) {
+        throw new Error('Invalid path data: no waypoints or segments found');
+      }
       console.log('[DEBUG] ✅ Path found!');
       console.log('[DEBUG] - Start:', `${receivedPathData.start_floor || startFloorApiId}/${receivedPathData.start_room}`);
       console.log('[DEBUG] - End:', `${receivedPathData.end_floor || endFloorApiId}/${receivedPathData.end_room}`);
@@ -401,17 +484,45 @@ const IndoorNavPage = ({ onNavigate }) => {
     } catch (error) {
       setShowLoading(false);
       console.error('[DEBUG] ❌ Pathfinding error:', error);
-      setErrorMessage(`Error finding path: ${error.message}`);
+      
+      // Provide user-friendly error messages
+      let userErrorMessage = 'Error finding path';
+      if (error.message) {
+        userErrorMessage = error.message;
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        userErrorMessage = 'Network error: Cannot connect to pathfinding server';
+      }
+      
+      setErrorMessage(userErrorMessage);
+      setPathData(null); // Clear any stale path data
     }
   }, [setErrorMessage, setShowLoading, setLoadingText, setStatusText]);
 
   // Auto-trigger pathfinding when both start and destination are selected
   useEffect(() => {
-    if (selectedStart && selectedDestination && selectedStartFloor && selectedEndFloor) {
-      console.log('[DEBUG] Start and destination selected, auto-triggering pathfinding');
-      handleFindPath(selectedStart, selectedDestination, selectedStartFloor, selectedEndFloor);
+    // Validate all selections before triggering pathfinding
+    if (!selectedStart || !selectedDestination || !selectedStartFloor || !selectedEndFloor) {
+      return; // Missing required selections
     }
-  }, [selectedStart, selectedDestination, selectedStartFloor, selectedEndFloor, handleFindPath]);
+    
+    // Validate that selected rooms exist in their respective floor locations
+    const startExists = startLocations.find(loc => loc.id === selectedStart);
+    const destExists = endLocations.find(loc => loc.id === selectedDestination);
+    
+    if (!startExists || !destExists) {
+      console.log('[DEBUG] Selected rooms not found in floor locations, skipping pathfinding');
+      return;
+    }
+    
+    // Prevent same room on same floor
+    if (selectedStart === selectedDestination && selectedStartFloor === selectedEndFloor) {
+      console.log('[DEBUG] Start and destination are the same room on same floor, skipping pathfinding');
+      return;
+    }
+    
+    console.log('[DEBUG] Start and destination selected, auto-triggering pathfinding');
+    handleFindPath(selectedStart, selectedDestination, selectedStartFloor, selectedEndFloor);
+  }, [selectedStart, selectedDestination, selectedStartFloor, selectedEndFloor, startLocations, endLocations, handleFindPath]);
 
   // Update status text when destination is reached
   useEffect(() => {
@@ -454,6 +565,22 @@ const IndoorNavPage = ({ onNavigate }) => {
         </button>
       </div>
 
+      {/* Floor View Switcher - Show when multi-floor path exists */}
+      {floorsWithPaths.length > 1 && (
+        <div className="floor-switcher">
+          <div className="floor-switcher-label">View Floor:</div>
+          {floorsWithPaths.map(floor => (
+            <button
+              key={`floor-view-${floor}`}
+              className={`floor-btn ${viewFloor === floor ? 'active' : ''}`}
+              onClick={() => setViewFloor(floor)}
+            >
+              {FLOOR_CONFIG[floor].name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Floor Plan Canvas */}
       <div className="canvas-container">
         <FloorPlanCanvasWithPath
@@ -465,22 +592,6 @@ const IndoorNavPage = ({ onNavigate }) => {
           heading={displayHeading}
           onCanvasClick={setPosition}
         />
-        
-        {/* Floor View Switcher - Show when multi-floor path exists */}
-        {floorsWithPaths.length > 1 && (
-          <div className="floor-switcher">
-            <div className="floor-switcher-label">View Floor:</div>
-            {floorsWithPaths.map(floor => (
-              <button
-                key={`floor-view-${floor}`}
-                className={`floor-btn ${viewFloor === floor ? 'active' : ''}`}
-                onClick={() => setViewFloor(floor)}
-              >
-                {FLOOR_CONFIG[floor].name}
-              </button>
-            ))}
-          </div>
-        )}
         
         <button
           type="button"
@@ -554,13 +665,29 @@ const IndoorNavPage = ({ onNavigate }) => {
                   value={selectedStart}
                   onChange={(e) => {
                     const newStart = e.target.value;
+                    
+                    // Validate that the room exists in the current floor
+                    if (newStart && !startLocations.find(loc => loc.id === newStart)) {
+                      console.error('Selected start room not found in current floor locations');
+                      setErrorMessage('Selected room is not available on this floor');
+                      return;
+                    }
+                    
+                    // Validate that start and destination are not the same on the same floor
                     if (newStart === selectedDestination && newStart !== '' && selectedStartFloor === selectedEndFloor) {
                       setErrorMessage('Start and destination cannot be the same room on the same floor!');
                       return;
                     }
+                    
                     setSelectedStart(newStart);
+                    
+                    // Clear any existing error when successfully selecting a room
+                    if (newStart && errorMessage) {
+                      setErrorMessage('');
+                    }
                   }}
                   className="location-select"
+                  disabled={startLocations.length === 0}
                 >
                   <option value="">-- Select starting room --</option>
                   {startLocations.map(location => (
@@ -601,13 +728,29 @@ const IndoorNavPage = ({ onNavigate }) => {
                   value={selectedDestination}
                   onChange={(e) => {
                     const newDestination = e.target.value;
+                    
+                    // Validate that the room exists in the current floor
+                    if (newDestination && !endLocations.find(loc => loc.id === newDestination)) {
+                      console.error('Selected destination room not found in current floor locations');
+                      setErrorMessage('Selected room is not available on this floor');
+                      return;
+                    }
+                    
+                    // Validate that start and destination are not the same on the same floor
                     if (newDestination === selectedStart && newDestination !== '' && selectedStartFloor === selectedEndFloor) {
                       setErrorMessage('Start and destination cannot be the same room on the same floor!');
                       return;
                     }
+                    
                     setSelectedDestination(newDestination);
+                    
+                    // Clear any existing error when successfully selecting a room
+                    if (newDestination && errorMessage) {
+                      setErrorMessage('');
+                    }
                   }}
                   className="location-select"
+                  disabled={endLocations.length === 0}
                 >
                   <option value="">-- Select destination room --</option>
                   {endLocations.map(location => (

@@ -111,12 +111,18 @@ def get_pathfinding():
 
         # Check if this is multi-floor pathfinding
         if start_floor != end_floor:
+            # Get ADA compliance setting
+            ada_compliance = request.args.get('ada_compliance', 'false').lower() == 'true'
+            mode_text = "elevator" if ada_compliance else "stairs"
+            
             print(f"[DEBUG] Multi-floor pathfinding: {start_floor}/{start_room} -> {end_floor}/{end}")
-            result = find_multi_floor_path(start_floor, start_room, end_floor, end)
+            print(f"[DEBUG] Mode: {mode_text.upper()}")
+            
+            result = find_multi_floor_path(start_floor, start_room, end_floor, end, ada_compliance)
             
             if result is None:
                 print(f"[DEBUG] No path found between floors")
-                return jsonify({'error': f'No path found from {start_floor}/{start_room} to {end_floor}/{end}'}), 404
+                return jsonify({'error': f'No {mode_text} path found from {start_floor}/{start_room} to {end_floor}/{end}'}), 404
             
             print(f"[DEBUG] Multi-floor path found! {len(result.get('waypoints', []))} total waypoints")
             return jsonify(result)

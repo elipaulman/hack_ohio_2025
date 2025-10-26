@@ -6,6 +6,7 @@ import IndoorNavPage from './components/IndoorNav/IndoorNavPage';
 import OutdoorMapPage from './components/OutdoorMapPage';
 import ScottLabSchedule from './components/ScottLabSchedule';
 import GaragesPage from './components/GaragesPage';
+import SettingsPage from './components/SettingsPage';
 import './App.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
       )}
       {currentPage === 'schedule' && <ScottLabSchedule />}
       {currentPage === 'garages' && <GaragesPage onNavigate={handleNavigate} />}
+      {currentPage === 'settings' && <SettingsPage onNavigate={handleNavigate} />}
     </div>
   );
 }
