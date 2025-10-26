@@ -2,68 +2,106 @@ import React from 'react';
 
 function Navbar({ currentPage, onNavigate }) {
   return (
-    <header className="bg-white shadow">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="text-2xl font-bold">Buckeye ACE</div>
-          <nav className="hidden md:flex space-x-4 text-gray-600">
+    <header style={{ background: 'linear-gradient(to right, #BB0000, #CC0000)' }} className="shadow-lg">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <img
+            src="/way.png"
+            alt="ACE Logo"
+            className="h-10 w-10"
+          />
+          <div className="text-2xl font-bold text-white">ACE</div>
+          <nav className="hidden md:flex space-x-6 ml-8">
             <button
-              className={`hover:text-gray-900 ${currentPage === 'home' ? 'text-blue-600 font-semibold' : ''}`}
+              style={currentPage === 'home' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+              className={`px-3 py-2 rounded-md transition-colors ${
+                currentPage === 'home'
+                  ? 'font-semibold'
+                  : 'text-white hover:bg-opacity-80'
+              }`}
               onClick={() => onNavigate('home')}
             >
               Home
             </button>
             <button
-              className={`hover:text-gray-900 ${currentPage === 'indoor-nav' ? 'text-blue-600 font-semibold' : ''}`}
+              style={currentPage === 'indoor-nav' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+              className={`px-3 py-2 rounded-md transition-colors ${
+                currentPage === 'indoor-nav'
+                  ? 'font-semibold'
+                  : 'text-white hover:bg-opacity-80'
+              }`}
               onClick={() => onNavigate('indoor-nav')}
             >
               Indoor Nav
             </button>
             <button
-              className={`hover:text-gray-900 ${currentPage === 'outdoor-map' ? 'text-blue-600 font-semibold' : ''}`}
+              style={currentPage === 'outdoor-map' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+              className={`px-3 py-2 rounded-md transition-colors ${
+                currentPage === 'outdoor-map'
+                  ? 'font-semibold'
+                  : 'text-white hover:bg-opacity-80'
+              }`}
               onClick={() => onNavigate('outdoor-map')}
             >
               Outdoor Map
             </button>
             <button
-              className={`hover:text-gray-900 ${currentPage === 'about' ? 'text-blue-600 font-semibold' : ''}`}
+              style={currentPage === 'about' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+              className={`px-3 py-2 rounded-md transition-colors ${
+                currentPage === 'about'
+                  ? 'font-semibold'
+                  : 'text-white hover:bg-opacity-80'
+              }`}
               onClick={() => onNavigate('about')}
             >
               About
             </button>
           </nav>
         </div>
-        <div className="flex items-center">
-          <img
-            className="rounded-full w-8 h-8 border border-gray-300"
-            src="https://media-exp1.licdn.com/dms/image/C5603AQGEQ6ydraNeww/profile-displayphoto-shrink_200_200/0/1623517758261?e=1629331200&v=beta&t=mhUiw4p21E9okkvInvM0ry8lmLsT6s5ppWMKo6kFs2M"
-            alt="avatar"
-          />
-        </div>
       </div>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden flex justify-around border-t border-gray-200 py-2 text-sm">
+      <nav style={{ backgroundColor: '#BB0000', borderTopColor: '#990000' }} className="md:hidden flex justify-around border-t py-2 text-sm">
         <button
-          className={`px-4 py-2 ${currentPage === 'home' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          style={currentPage === 'home' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+          className={`px-3 py-2 rounded transition-colors ${
+            currentPage === 'home'
+              ? 'font-semibold'
+              : 'text-white hover:bg-opacity-80'
+          }`}
           onClick={() => onNavigate('home')}
         >
           Home
         </button>
         <button
-          className={`px-4 py-2 ${currentPage === 'indoor-nav' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          style={currentPage === 'indoor-nav' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+          className={`px-3 py-2 rounded transition-colors ${
+            currentPage === 'indoor-nav'
+              ? 'font-semibold'
+              : 'text-white hover:bg-opacity-80'
+          }`}
           onClick={() => onNavigate('indoor-nav')}
         >
-          Indoor Nav
+          Indoor
         </button>
         <button
-          className={`px-4 py-2 ${currentPage === 'outdoor-map' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          style={currentPage === 'outdoor-map' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+          className={`px-3 py-2 rounded transition-colors ${
+            currentPage === 'outdoor-map'
+              ? 'font-semibold'
+              : 'text-white hover:bg-opacity-80'
+          }`}
           onClick={() => onNavigate('outdoor-map')}
         >
-          Outdoor Map
+          Outdoor
         </button>
         <button
-          className={`px-4 py-2 ${currentPage === 'about' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          style={currentPage === 'about' ? { backgroundColor: 'white', color: '#BB0000' } : {}}
+          className={`px-3 py-2 rounded transition-colors ${
+            currentPage === 'about'
+              ? 'font-semibold'
+              : 'text-white hover:bg-opacity-80'
+          }`}
           onClick={() => onNavigate('about')}
         >
           About

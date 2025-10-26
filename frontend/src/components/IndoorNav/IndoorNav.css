@@ -12,7 +12,7 @@
 }
 
 .indoor-nav-subheader {
-  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  background: linear-gradient(135deg, #BB0000 0%, #CC0000 100%);
   color: white;
   padding: calc(12px + env(safe-area-inset-top, 0)) 20px 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -199,8 +199,8 @@
 }
 
 .step-calibration-panel.active {
-  background: rgba(227, 242, 253, 0.95);
-  border: 2px solid #2196F3;
+  background: rgba(254, 226, 226, 0.95);
+  border: 2px solid #BB0000;
 }
 
 .step-calibration-panel h3 {
@@ -272,7 +272,7 @@
 .debug-grid strong {
   display: block;
   margin-bottom: 4px;
-  color: #2196F3;
+  color: #FF6B6B;
 }
 
 .loading-overlay {
@@ -332,7 +332,7 @@
 }
 
 .error-content h3 {
-  color: #F44336;
+  color: #BB0000;
   margin-bottom: 12px;
 }
 
@@ -360,15 +360,15 @@
 }
 
 .btn-primary {
-  background: #2196F3;
+  background: #BB0000;
   color: white;
-  box-shadow: 0 12px 18px rgba(33, 150, 243, 0.28);
+  box-shadow: 0 12px 18px rgba(187, 0, 0, 0.28);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1976D2;
+  background: #990000;
   transform: translateY(-1px);
-  box-shadow: 0 16px 24px rgba(33, 150, 243, 0.32);
+  box-shadow: 0 16px 24px rgba(187, 0, 0, 0.32);
 }
 
 .btn-secondary {
