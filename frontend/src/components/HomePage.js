@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MapPin,
   Map,
@@ -18,7 +18,115 @@ import {
 const OSU_SCARLET = '#BB0000';
 const OSU_GRAY = '#666666';
 
+// Demo / detection thresholds
+const CROWD_MINUTES_THRESHOLD = 12; // minutes until a class ends to consider "soon"
+const CROWD_ENROLLMENT_THRESHOLD = 30; // students to consider a crowd
+
 function HomePage({ onNavigate }) {
+  const [soonRooms, setSoonRooms] = useState([]);
+  const [soonLoading, setSoonLoading] = useState(true);
+  const [soonError, setSoonError] = useState('');
+
+  useEffect(() => {
+    // Load schedule and compute rooms that will have high traffic soon.
+    // The user asked to "assume that it's 12:35" — for demo purposes we use 12:35 as the current time.
+    const nowMinutes = 12 * 60 + 35; // 12:35 -> 755 minutes
+
+    const parseTimeToMinutes = (t) => {
+      if (!t) return null;
+      const m = t.trim().toLowerCase().match(/(\d{1,2}):(\d{2})\s*(am|pm)/);
+      if (!m) return null;
+      let hh = parseInt(m[1], 10);
+      const mm = parseInt(m[2], 10);
+      const ampm = m[3];
+      if (ampm === 'pm' && hh !== 12) hh += 12;
+      if (ampm === 'am' && hh === 12) hh = 0;
+      return hh * 60 + mm;
+    };
+
+    const run = async () => {
+      try {
+        setSoonLoading(true);
+        const resp = await fetch('/scott_lab_schedule.csv');
+        if (!resp.ok) throw new Error('Failed to load schedule CSV');
+        const text = await resp.text();
+
+        const lines = text.trim().split('\n');
+        if (lines.length <= 1) {
+          setSoonRooms([]);
+          setSoonLoading(false);
+          return;
+        }
+
+        const header = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const rows = lines.slice(1).map(line => {
+          const values = [];
+          let cur = '';
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') { inQuotes = !inQuotes; continue; }
+            if (ch === ',' && !inQuotes) { values.push(cur.trim()); cur = ''; continue; }
+            cur += ch;
+          }
+          values.push(cur.trim());
+          const obj = {};
+          header.forEach((h, idx) => { obj[h] = values[idx] || ''; });
+          return obj;
+        });
+
+  // Per request: assume it's Monday at 12:35 for the demo
+  const shortDay = 'Mon';
+
+        const candidates = [];
+        for (const r of rows) {
+          const daysField = (r.Days || '').replace(/"/g, '');
+          if (!daysField) continue;
+          const parts = daysField.split(',').map(s => s.trim().slice(0,3));
+          if (!parts.includes(shortDay)) continue;
+
+          const start = parseTimeToMinutes(r.Start);
+          const end = parseTimeToMinutes(r.End);
+          if (start == null && end == null) continue;
+          const enrolled = parseInt((r.Enrolled || '0').replace(/[^0-9]/g, ''), 10) || 0;
+
+          // Check for classes starting soon
+          if (start != null) {
+            const minutesUntilStart = start - nowMinutes;
+            if (minutesUntilStart >= 0 && minutesUntilStart <= CROWD_MINUTES_THRESHOLD && enrolled >= CROWD_ENROLLMENT_THRESHOLD) {
+              candidates.push({ room: r.Room, course: r.Course, start: r.Start, end: r.End, enrolled, minutesUntil: minutesUntilStart, when: 'starts' });
+              continue;
+            }
+          }
+
+          // Check for classes ending soon
+          if (end != null) {
+            const minutesUntilEnd = end - nowMinutes;
+            if (minutesUntilEnd >= 0 && minutesUntilEnd <= CROWD_MINUTES_THRESHOLD && enrolled >= CROWD_ENROLLMENT_THRESHOLD) {
+              candidates.push({ room: r.Room, course: r.Course, start: r.Start, end: r.End, enrolled, minutesUntil: minutesUntilEnd, when: 'ends' });
+            }
+          }
+        }
+
+        // Deduplicate by room (keep highest enrolled if multiple entries)
+        const dedup = {};
+        for (const c of candidates) {
+          const key = (c.room || '').trim();
+          if (!key) continue;
+          if (!dedup[key] || (c.enrolled > dedup[key].enrolled)) dedup[key] = c;
+        }
+
+        setSoonRooms(Object.values(dedup).sort((a,b) => b.enrolled - a.enrolled));
+        setSoonLoading(false);
+      } catch (err) {
+        console.error('Error computing soon rooms', err);
+        setSoonError(err.message || String(err));
+        setSoonLoading(false);
+      }
+    };
+
+    run();
+  }, []);
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%)', color: OSU_GRAY }}>
       <main className="container mx-auto px-4 py-6 md:py-12 max-w-7xl">
@@ -325,6 +433,47 @@ function HomePage({ onNavigate }) {
           {/* Sidebar - Info Cards */}
           <aside className="space-y-6 md:space-y-8">
 
+            <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-7" style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFF7ED' }}>
+                  <Activity size={18} strokeWidth={2.5} color="#D97706" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg md:text-xl text-gray-900">High Traffic — Soon</h4>
+                  <div className="text-xs text-gray-500">Rooms with classes starting or ending soon (within {CROWD_MINUTES_THRESHOLD} minutes)</div>
+                </div>
+              </div>
+
+              {soonLoading ? (
+                <div className="text-sm text-gray-600">Checking schedules…</div>
+              ) : soonError ? (
+                <div className="text-sm text-red-600">Error: {soonError}</div>
+              ) : soonRooms.length === 0 ? (
+                <div className="text-sm text-gray-600">No rooms expected to be busy in the next {CROWD_MINUTES_THRESHOLD} minutes.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {soonRooms.map(r => (
+                    <li key={r.room} className="p-3 rounded-xl bg-[#F9FAFB] border border-gray-100 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-gray-900">{r.room}</div>
+                        <div className="text-xs text-gray-500">
+                          {r.course ? `${r.course} • ` : ''}
+                          {r.when === 'starts' ? `starts ${r.start}` : `ends ${r.end}`} • {r.enrolled} students
+                        </div>
+                      </div>
+                      <div className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">~{Math.max(0, Math.round(r.minutesUntil))}m</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="mt-4">
+                <button onClick={() => onNavigate('schedule')} className="w-full text-sm font-semibold px-4 py-2 rounded-xl" style={{ background: '#fff', border: '1px solid #E5E7EB' }}>
+                  View full schedule
+                </button>
+              </div>
+            </div>
+
             {/* System Status Card */}
             <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-7" style={{
               boxShadow: '0 10px 40px rgba(0,0,0,0.08)'
@@ -461,6 +610,8 @@ function HomePage({ onNavigate }) {
                 </span>
               </button>
             </div>
+
+            
 
           </aside>
         </div>
