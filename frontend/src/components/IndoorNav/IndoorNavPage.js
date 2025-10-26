@@ -9,7 +9,7 @@ import './IndoorNav.css';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // TODO: Set DEV_MODE to false for production builds and before demoing
-const DEV_MODE = true; // Set to false to disable dev features
+const DEV_MODE = false; // Set to false to disable dev features
 
 // Floor configuration
 const FLOOR_CONFIG = {
@@ -344,6 +344,7 @@ const IndoorNavPage = ({ onNavigate }) => {
     setIsTracking(true);
     setIsNavigating(true);
     setStatusText('Navigating...');
+    setIsPanelCollapsed(true); // Auto-collapse panel when navigation starts
   };
 
   // Stop navigation

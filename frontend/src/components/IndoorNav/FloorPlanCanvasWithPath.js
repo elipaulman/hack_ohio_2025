@@ -11,17 +11,6 @@ const FloorPlanCanvasWithPath = ({
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
 
-  // Load floor plan image
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      imageRef.current = img;
-      drawCanvas();
-    };
-    img.onerror = () => console.error('Failed to load floor plan image');
-    img.src = floorPlanPath;
-  }, [floorPlanPath]);
-
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !imageRef.current) return;
@@ -83,6 +72,23 @@ const FloorPlanCanvasWithPath = ({
       console.log('[FloorPlanCanvas] No user position to draw');
     }
   }, [pathData, userPosition, heading, currentFloor]);
+
+  const drawCanvasRef = useRef(drawCanvas);
+
+  useEffect(() => {
+    drawCanvasRef.current = drawCanvas;
+  }, [drawCanvas]);
+
+  // Load floor plan image
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      imageRef.current = img;
+      drawCanvasRef.current();
+    };
+    img.onerror = () => console.error('Failed to load floor plan image');
+    img.src = floorPlanPath;
+  }, [floorPlanPath]);
 
   // Redraw when path data, user position, or current floor changes
   useEffect(() => {
