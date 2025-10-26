@@ -216,8 +216,51 @@ const IndoorNavPage = ({ onNavigate }) => {
 
   const floorsWithPaths = getFloorsWithPaths();
 
+  // Determine which floor the user is currently on based on path progress
+  const getCurrentFloorFromProgress = useCallback(() => {
+    if (!pathData || !pathData.segments || !isNavigating) {
+      return null;
+    }
+
+    const progress = pathFollowing.pathProgress;
+    const totalLength = pathFollowing.totalPathLength;
+
+    console.log('[IndoorNavPage] Progress:', progress, '/', totalLength);
+
+    // Calculate cumulative distances for each segment
+    let cumulativeDistance = 0;
+
+    for (const segment of pathData.segments) {
+      if (!segment.waypoints || segment.waypoints.length < 2) continue;
+
+      // Calculate this segment's length
+      let segmentLength = 0;
+      for (let i = 0; i < segment.waypoints.length - 1; i++) {
+        const wp1 = segment.waypoints[i];
+        const wp2 = segment.waypoints[i + 1];
+
+        if (wp1.pixel_coords && wp2.pixel_coords) {
+          const dx = wp2.pixel_coords.x - wp1.pixel_coords.x;
+          const dy = wp2.pixel_coords.y - wp1.pixel_coords.y;
+          segmentLength += Math.sqrt(dx * dx + dy * dy);
+        }
+      }
+
+      // Check if user is in this segment
+      if (progress >= cumulativeDistance && progress <= cumulativeDistance + segmentLength) {
+        console.log('[IndoorNavPage] User is on floor:', segment.floor);
+        return segment.floor;
+      }
+
+      cumulativeDistance += segmentLength;
+    }
+
+    // Default to first segment's floor
+    return pathData.segments[0]?.floor || null;
+  }, [pathData, pathFollowing.pathProgress, pathFollowing.totalPathLength, isNavigating]);
+
   // Calculate the display position based on the viewed floor
-  // During navigation: show actual position
+  // During navigation: show actual position only on the floor user is currently on
   // When not navigating (preview): show start position of each floor's segment
   const displayPosition = useMemo(() => {
     // If no path data, return the actual position (if any)
@@ -225,26 +268,25 @@ const IndoorNavPage = ({ onNavigate }) => {
       return pathFollowing.currentPosition;
     }
 
-    // If actively navigating, always show the actual position from pathFollowing
-    // (pathFollowing handles multi-floor paths by combining all segments)
-    if (isNavigating && pathFollowing.currentPosition) {
-      console.log('[IndoorNavPage] Navigating - showing actual position:', pathFollowing.currentPosition);
-      return pathFollowing.currentPosition;
-    }
-
-    // Not navigating - show preview positions (start of each floor segment)
+    // Check if this is a multi-floor path
     const isMultiFloor = pathData.segments && Array.isArray(pathData.segments);
 
-    if (isMultiFloor) {
-      // Find the segment for the currently viewed floor
-      const currentSegment = pathData.segments.find(seg => seg && seg.floor === viewFloor);
+    // If actively navigating on a multi-floor path
+    if (isNavigating && isMultiFloor) {
+      const currentFloor = getCurrentFloorFromProgress();
+      console.log('[IndoorNavPage] Current floor:', currentFloor, 'Viewing floor:', viewFloor);
 
-      if (currentSegment && currentSegment.waypoints && Array.isArray(currentSegment.waypoints)) {
-        // Find the first waypoint with pixel_coords in this segment
-        const firstWaypoint = currentSegment.waypoints.find(wp => wp && wp.pixel_coords);
+      // Only show position if viewing the floor the user is currently on
+      if (currentFloor === viewFloor && pathFollowing.currentPosition) {
+        console.log('[IndoorNavPage] Showing actual position:', pathFollowing.currentPosition);
+        return pathFollowing.currentPosition;
+      }
 
-        if (firstWaypoint && firstWaypoint.pixel_coords) {
-          console.log('[IndoorNavPage] Preview - showing start position for floor', viewFloor, ':', firstWaypoint.pixel_coords);
+      // Viewing a different floor - show preview start position for that floor
+      const viewedSegment = pathData.segments.find(seg => seg && seg.floor === viewFloor);
+      if (viewedSegment && viewedSegment.waypoints) {
+        const firstWaypoint = viewedSegment.waypoints.find(wp => wp && wp.pixel_coords);
+        if (firstWaypoint?.pixel_coords) {
           return {
             x: firstWaypoint.pixel_coords.x,
             y: firstWaypoint.pixel_coords.y
@@ -252,19 +294,42 @@ const IndoorNavPage = ({ onNavigate }) => {
         }
       }
 
-      // If no segment found for this floor, don't show position
-      console.log('[IndoorNavPage] No segment found for floor', viewFloor);
       return null;
     }
 
-    // Single-floor path: only show position if we're on the correct floor
+    // Single-floor navigation
+    if (isNavigating && pathFollowing.currentPosition) {
+      console.log('[IndoorNavPage] Single-floor - showing actual position:', pathFollowing.currentPosition);
+      return pathFollowing.currentPosition;
+    }
+
+    // Not navigating - show preview positions
+    if (isMultiFloor) {
+      const currentSegment = pathData.segments.find(seg => seg && seg.floor === viewFloor);
+
+      if (currentSegment && currentSegment.waypoints && Array.isArray(currentSegment.waypoints)) {
+        const firstWaypoint = currentSegment.waypoints.find(wp => wp && wp.pixel_coords);
+
+        if (firstWaypoint && firstWaypoint.pixel_coords) {
+          console.log('[IndoorNavPage] Preview - showing start position for floor', viewFloor);
+          return {
+            x: firstWaypoint.pixel_coords.x,
+            y: firstWaypoint.pixel_coords.y
+          };
+        }
+      }
+
+      return null;
+    }
+
+    // Single-floor path preview: only show position if we're on the correct floor
     const pathFloor = pathData.start_floor || pathData.floor || selectedStartFloor;
     if (pathFloor === viewFloor) {
       return pathFollowing.currentPosition;
     }
 
     return null;
-  }, [pathData, viewFloor, pathFollowing.currentPosition, selectedStartFloor, isNavigating]);
+  }, [pathData, viewFloor, pathFollowing.currentPosition, selectedStartFloor, isNavigating, getCurrentFloorFromProgress]);
     // 25 was perfectly opposite of what we want
   const buildingRotationOffset = 295;
   const applyBuildingOffset = useCallback((headingValue) => {
