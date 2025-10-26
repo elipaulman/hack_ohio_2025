@@ -13,7 +13,7 @@ export const usePathFollowing = (pathData) => {
 
   const pathSegmentsRef = useRef([]);
   const totalPathLengthRef = useRef(0);
-  const PIXELS_PER_STEP = useRef(8.5); // ~0.425m * 20px/m from position tracker
+  const PIXELS_PER_STEP = useRef(10.0); // ~0.425m * 20px/m from position tracker
 
   // Calculate path segments when path data loads
   useEffect(() => {
