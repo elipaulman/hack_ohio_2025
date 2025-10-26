@@ -1,110 +1,249 @@
 import React from 'react';
+import {
+  Footprints,
+  Compass,
+  Route,
+  Target,
+  Rocket,
+  Github,
+  Smartphone,
+  Settings,
+  ClipboardList,
+  Link
+} from 'lucide-react';
 
-const ACCENT = '#B23A3A'; // softer OSU scarlet
+const OSU_SCARLET = '#BB0000';
 
 function AboutPage() {
-  const teamMembers = ['Elijah Paulman', 'Caue Faria', 'Arnac Chennamaneni', 'Artur Ulsenheimer'];
+  const teamMembers = [
+    'Elijah Paulman',
+    'Caue Faria',
+    'Arnac Chennamaneni',
+    'Artur Ulsenheimer'
+  ];
+
+  const features = [
+    {
+      title: 'Step Detection',
+      description: 'Detects steps using accelerometer patterns with adaptive thresholds for accurate movement tracking.',
+      Icon: Footprints,
+      iconColor: '#DC2626',
+      gradient: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)'
+    },
+    {
+      title: 'Heading Fusion',
+      description: 'Combines gyroscope and compass readings to provide stable and accurate direction estimates.',
+      Icon: Compass,
+      iconColor: '#2563EB',
+      gradient: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
+    },
+    {
+      title: 'Dead Reckoning',
+      description: 'Computes relative position from step count and heading with periodic recalibration.',
+      Icon: Route,
+      iconColor: '#16A34A',
+      gradient: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)'
+    },
+    {
+      title: 'Real-Time Calibration',
+      description: 'Periodic recalibration limits drift and improves long-term positioning accuracy.',
+      Icon: Target,
+      iconColor: '#CA8A04',
+      gradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+    }
+  ];
+
+  const technologies = [
+    'React',
+    'JavaScript',
+    'Canvas API',
+    'Device Sensors',
+    'PWA',
+    'Leaflet Maps'
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+    <div className="min-h-screen" style={{ background: '#f5f5f5' }}>
+      <main className="container mx-auto px-4 py-6 md:py-10 max-w-7xl">
 
-          {/* Main content */}
-          <section className="flex-1 space-y-6">
+        {/* Hero Section */}
+        <header className="rounded-xl md:rounded-2xl shadow-lg overflow-hidden mb-6 md:mb-8" style={{ background: `linear-gradient(135deg, ${OSU_SCARLET} 0%, #990000 100%)` }}>
+          <div className="p-6 md:p-8 text-white">
+            <h1 className="text-2xl md:text-4xl font-bold mb-3">About This Project</h1>
+            <p className="text-sm md:text-lg opacity-95 leading-relaxed">
+              A sensor-driven indoor navigation Progressive Web App built for HackOHI/O 2025
+            </p>
+          </div>
+        </header>
 
-            {/* Hero Card */}
-            <div className="relative rounded-2xl overflow-hidden shadow">
-              <img src="/assets/scott-lab-basement.png" alt="Scott Lab" className="w-full h-48 object-cover block" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.4))' }} />
-              <div className="p-6 bg-white rounded-b-2xl -mt-6 relative z-10">
-                <h1 className="text-3xl font-semibold mb-2">About Our Project</h1>
-                <p className="text-gray-600">A lightweight, sensor-driven indoor navigation PWA built for HackOHI/O 2025.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Main Content */}
+          <section className="lg:col-span-2 space-y-6">
+
+            {/* Project Overview */}
+            <article className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-md">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)' }}>
+                  <Rocket size={28} strokeWidth={2.5} color="#DC2626" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">Indoor Navigation System</h2>
+                  <p className="text-xs md:text-sm text-gray-600 mt-1">Built for the Friction Finder Challenge by Honda</p>
+                </div>
               </div>
-            </div>
 
-            {/* Indoor Navigation */}
-            <article className="bg-white rounded-2xl shadow overflow-hidden p-6 hover:shadow-lg transition-shadow duration-200">
-              <h2 className="text-xl font-semibold mb-3" style={{ color: ACCENT }}>Indoor Navigation System</h2>
-              <p className="text-gray-700 mb-3">
-                Built for the Friction Finder Challenge by Honda, this app addresses navigation friction inside large
-                buildings like Scott Laboratory by leveraging device sensors instead of additional infrastructure.
+              <p className="text-sm md:text-base text-gray-700 leading-relaxed mb-3">
+                This application addresses navigation friction inside large buildings like Scott Laboratory by
+                leveraging device sensors instead of requiring additional infrastructure.
               </p>
-              <p className="text-gray-700">
-                It combines step detection, heading fusion, and dead-reckoning to provide a responsive, privacy-conscious
-                indoor positioning experience — all within a progressive web app.
+
+              <p className="text-sm md:text-base text-gray-700 leading-relaxed">
+                It combines step detection, heading fusion, and dead-reckoning to provide a responsive,
+                privacy-conscious indoor positioning experience — all within a Progressive Web App.
               </p>
             </article>
 
             {/* How It Works */}
-            <article className="bg-white rounded-2xl shadow overflow-hidden p-6 hover:shadow-lg transition-shadow duration-200">
-              <h2 className="text-xl font-semibold mb-4">How It Works</h2>
-              <ul className="space-y-4 text-gray-700">
-                {[
-                  { title: 'Step Detection', description: 'Detects steps using accelerometer patterns with adaptive thresholds.', color: 'text-red-500', icon: 'M9 12l2 2 4-4' },
-                  { title: 'Heading Fusion', description: 'Combines gyroscope and compass readings to stabilize direction estimates.', color: 'text-red-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z M12 14v7' },
-                  { title: 'Dead Reckoning', description: 'Computes relative position from step count and heading with occasional recalibration.', color: 'text-green-500', icon: 'M3 10h4l3 8 4-16 3 8h4' },
-                  { title: 'Calibration', description: 'Periodic recalibration to limit drift and improve long-term accuracy.', color: 'text-yellow-500', icon: 'M13 16h-1v-4h-1m1-4h.01M12 20h.01' },
-                ].map(({ title, description, color, icon }) => (
-                  <li key={title} className="flex items-start gap-3">
-                    <div className={`flex-shrink-0 mt-1`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${color}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        {icon.split(' ').map((d, i) => (
-                          <path key={i} strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d} />
-                        ))}
-                      </svg>
+            <article className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-md">
+              <h2 className="text-xl md:text-2xl font-bold mb-5 text-gray-900">How It Works</h2>
+
+              <div className="space-y-4">
+                {features.map((feature) => {
+                  const IconComponent = feature.Icon;
+                  return (
+                    <div
+                      key={feature.title}
+                      className="flex items-start gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-red-100 hover:bg-red-50 transition-all duration-200"
+                    >
+                      <div
+                        className="w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: feature.gradient }}
+                      >
+                        <IconComponent size={28} strokeWidth={2.5} color={feature.iconColor} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-base md:text-lg text-gray-900">{feature.title}</h3>
+                        <p className="text-xs md:text-sm text-gray-600 mt-1 leading-relaxed">{feature.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium">{title}</div>
-                      <div className="text-sm text-gray-600">{description}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
             </article>
 
-            {/* Team */}
-            <article className="bg-white rounded-2xl shadow overflow-hidden p-6 hover:shadow-lg transition-shadow duration-200">
-              <h2 className="text-xl font-semibold mb-4">Team</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {teamMembers.map((name) => (
-                  <div key={name} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-                    <div className="w-12 h-12 rounded-lg" style={{ background: `linear-gradient(135deg, ${ACCENT}, #8b0000)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                      {name.split(' ')[0][0]}
+            {/* Team Section */}
+            <article className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-md">
+              <h2 className="text-xl md:text-2xl font-bold mb-5 text-gray-900">The Team</h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {teamMembers.map((name) => {
+                  const initials = name.split(' ').map(n => n[0]).join('');
+                  return (
+                    <div
+                      key={name}
+                      className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-100 hover:border-red-100 hover:bg-red-50 transition-all duration-200"
+                    >
+                      <div
+                        className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center font-bold text-xl text-white flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${OSU_SCARLET}, #990000)` }}
+                      >
+                        {initials}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-base text-gray-900">{name}</div>
+                        <div className="text-xs text-gray-600">Developer</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium">{name}</div>
-                      <div className="text-sm text-gray-500">Contributor</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </article>
 
           </section>
 
           {/* Sidebar */}
-          <aside className="w-full lg:w-96 flex-shrink-0 space-y-6">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <div className="h-32 bg-cover bg-center" style={{ backgroundImage: "url('/assets/scott-lab-sidebar.png')" }} />
-              <div className="p-4">
-                <h4 className="text-xl font-semibold mb-1">Technology Stack</h4>
-                <p className="text-sm text-gray-600 mb-3">Core tools powering the project</p>
-                <div className="flex flex-wrap gap-2">
-                  {['React', 'JavaScript', 'Canvas', 'Device Sensors', 'PWA'].map((tech) => (
-                    <span key={tech} className="bg-red-50 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">{tech}</span>
-                  ))}
+          <aside className="space-y-6">
+
+            {/* Technology Stack */}
+            <div className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)' }}>
+                  <Settings size={20} strokeWidth={2.5} color="#2563EB" />
                 </div>
-                <div className="mt-4">
-                  <h5 className="font-semibold mb-1">Project Links</h5>
-                  <div className="flex flex-col gap-2">
-                    <a className="text-sm" style={{ color: ACCENT }} href="https://github.com/elipaulman/hack_ohio_2025">GitHub Repository</a>
-                    <a className="text-sm" style={{ color: ACCENT }} href="/manifest.json">PWA Manifest</a>
-                    <a className="text-sm" style={{ color: ACCENT }} href="/README.md">Project README</a>
-                  </div>
+                <h3 className="font-bold text-lg md:text-xl text-gray-900">Technology Stack</h3>
+              </div>
+
+              <p className="text-xs md:text-sm text-gray-600 mb-4">Core technologies powering the project</p>
+
+              <div className="flex flex-wrap gap-2">
+                {technologies.map((tech) => (
+                  <span
+                    key={tech}
+                    className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold"
+                    style={{ background: '#fee2e2', color: '#991b1b' }}
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Project Info */}
+            <div className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' }}>
+                  <ClipboardList size={20} strokeWidth={2.5} color="#CA8A04" />
+                </div>
+                <h3 className="font-bold text-lg md:text-xl text-gray-900">Project Details</h3>
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg" style={{ background: '#f9fafb' }}>
+                  <div className="text-xs text-gray-600 mb-1">Event</div>
+                  <div className="text-sm font-semibold text-gray-900">HackOHI/O 2025</div>
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ background: '#f9fafb' }}>
+                  <div className="text-xs text-gray-600 mb-1">Challenge</div>
+                  <div className="text-sm font-semibold text-gray-900">Friction Finder by Honda</div>
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ background: '#f9fafb' }}>
+                  <div className="text-xs text-gray-600 mb-1">Type</div>
+                  <div className="text-sm font-semibold text-gray-900">Progressive Web App</div>
                 </div>
               </div>
             </div>
+
+            {/* Resources */}
+            <div className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)' }}>
+                  <Link size={20} strokeWidth={2.5} color="#4F46E5" />
+                </div>
+                <h3 className="font-bold text-lg md:text-xl text-gray-900">Resources</h3>
+              </div>
+
+              <div className="space-y-2">
+                <a
+                  href="https://github.com/elipaulman/hack_ohio_2025"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 rounded-lg hover:bg-red-50 transition-colors duration-200"
+                  style={{ border: '1px solid #f0f0f0' }}
+                >
+                  <Github size={20} strokeWidth={2} color={OSU_SCARLET} />
+                  <span className="text-sm font-medium" style={{ color: OSU_SCARLET }}>GitHub Repository</span>
+                </a>
+
+                <div className="flex items-center gap-2 p-3 rounded-lg" style={{ border: '1px solid #f0f0f0' }}>
+                  <Smartphone size={20} strokeWidth={2} color="#666666" />
+                  <span className="text-sm font-medium text-gray-700">Install as PWA</span>
+                </div>
+              </div>
+            </div>
+
           </aside>
 
         </div>
