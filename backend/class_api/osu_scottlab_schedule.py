@@ -3,7 +3,7 @@ import pandas as pd
 
 BASE_URL = "https://content.osu.edu/v2/classes/search"
 params = {
-    "q": "Scott",      # search for anything mentioning "Scott"
+    "q": "Scott", 
     "campus": "col"
 }
 
